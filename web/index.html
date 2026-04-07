@@ -189,6 +189,8 @@ button.danger { background: var(--accent2); }
     </div>
     <div id="betti-display"></div>
     <div id="fvec-display"></div>
+    <div id="spectral-display" style="margin-top:0.5rem;"></div>
+    <div id="hodge-display" style="margin-top:0.5rem; font-size:0.7rem; color:var(--dim);"></div>
   </div>
 
   <!-- Center: Waveform / Audio -->
@@ -393,7 +395,22 @@ const updateTopology = () => {
     document.getElementById('entropy').textContent = entropy.toFixed(3);
 
     drawPersistenceFromPairs(pairs, radius);
-    log(`WASM: β=${JSON.stringify(info.betti)}, χ=${info.euler}, ${pairs.length} persistence pairs`);
+    // Display spectral info.
+    const hodgeJson = wasm.WasmTopology.hodge_eigenvalues(flat, radius);
+    const hodgeEvs = JSON.parse(hodgeJson);
+    const spectralEl = document.getElementById('spectral-display');
+    if (hodgeEvs.length > 0 && hodgeEvs[0].length >= 2) {
+      const gap = hodgeEvs[0][1] - hodgeEvs[0][0];
+      spectralEl.innerHTML = `<span class="badge">λ₁=${gap.toFixed(2)}</span>`;
+    } else {
+      spectralEl.innerHTML = '';
+    }
+    const hodgeEl = document.getElementById('hodge-display');
+    hodgeEl.innerHTML = hodgeEvs.map((evs, k) =>
+      `L${String.fromCharCode(8320+k)}: [${evs.slice(0,5).map(e => e.toFixed(1)).join(', ')}${evs.length > 5 ? '…' : ''}]`
+    ).join('<br>');
+
+    log(`WASM: β=${JSON.stringify(info.betti)}, χ=${info.euler}, ${pairs.length} pers. pairs, λ₁=${hodgeEvs[0]?.[1]?.toFixed(2) ?? '—'}`);
 
   } else {
     // ── JS fallback path ──
