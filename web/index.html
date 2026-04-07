@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>topo-sonify — Topology-First Sonification</title>
+<style>
+:root {
+  --bg: #0a0a0f;
+  --surface: #12121a;
+  --border: #2a2a3a;
+  --text: #e0e0e8;
+  --dim: #888;
+  --accent: #7b68ee;
+  --accent2: #ff6b6b;
+  --accent3: #4ecdc4;
+  --mono: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: var(--mono);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+header {
+  padding: 2rem;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: baseline;
+  gap: 2rem;
+}
+header h1 { font-size: 1.4rem; font-weight: 600; color: var(--accent); }
+header nav a {
+  color: var(--dim);
+  text-decoration: none;
+  font-size: 0.85rem;
+  margin-right: 1.5rem;
+}
+header nav a:hover { color: var(--accent); }
+.container {
+  display: grid;
+  grid-template-columns: 320px 1fr 300px;
+  height: calc(100vh - 60px);
+}
+.panel {
+  border-right: 1px solid var(--border);
+  padding: 1.5rem;
+  overflow-y: auto;
+}
+.panel:last-child { border-right: none; }
+.panel h2 {
+  font-size: 0.9rem;
+  color: var(--accent);
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+.panel h3 {
+  font-size: 0.8rem;
+  color: var(--dim);
+  margin: 1rem 0 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+canvas#complex-canvas {
+  width: 100%;
+  height: 280px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  cursor: crosshair;
+}
+canvas#waveform-canvas {
+  width: 100%;
+  height: 120px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+canvas#persistence-canvas {
+  width: 100%;
+  height: 200px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+.stat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+.stat {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 0.75rem;
+  border-radius: 4px;
+}
+.stat .label { font-size: 0.7rem; color: var(--dim); }
+.stat .value { font-size: 1.2rem; color: var(--accent); margin-top: 0.25rem; }
+.slider-group { margin: 0.75rem 0; }
+.slider-group label {
+  font-size: 0.75rem;
+  color: var(--dim);
+  display: flex;
+  justify-content: space-between;
+}
+input[type="range"] {
+  width: 100%;
+  margin: 0.25rem 0;
+  accent-color: var(--accent);
+}
+button {
+  background: var(--accent);
+  color: white;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 4px;
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  cursor: pointer;
+  margin: 0.25rem;
+}
+button:hover { opacity: 0.85; }
+button.secondary { background: var(--border); }
+button.danger { background: var(--accent2); }
+.button-row { margin: 1rem 0; display: flex; flex-wrap: wrap; }
+#log {
+  font-size: 0.7rem;
+  color: var(--dim);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.75rem;
+  height: 150px;
+  overflow-y: auto;
+  margin-top: 1rem;
+}
+#log .entry { margin: 0.15rem 0; }
+#log .entry .time { color: var(--accent3); }
+.badge {
+  display: inline-block;
+  background: var(--border);
+  color: var(--accent);
+  padding: 0.15rem 0.5rem;
+  border-radius: 2px;
+  font-size: 0.7rem;
+  margin: 0.1rem;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>topo-sonify</h1>
+  <nav>
+    <a href="../docs/index.html">Seminar</a>
+    <a href="../docs/01-simplicial-complexes.html">Simplices</a>
+    <a href="../docs/02-homology.html">Homology</a>
+    <a href="../docs/03-persistent-homology.html">Persistence</a>
+    <a href="../docs/04-sonification-mapping.html">Mapping</a>
+    <a href="../docs/05-storyboard.html">Storyboard</a>
+  </nav>
+</header>
+
+<div class="container">
+  <!-- Left: Point Cloud / Complex Editor -->
+  <div class="panel">
+    <h2>Simplicial Complex</h2>
+    <canvas id="complex-canvas" width="600" height="560"></canvas>
+    <div class="button-row">
+      <button id="btn-clear">Clear</button>
+      <button id="btn-random" class="secondary">Random Cloud</button>
+      <button id="btn-circle" class="secondary">Circle</button>
+      <button id="btn-torus" class="secondary">Torus</button>
+    </div>
+    <div class="slider-group">
+      <label>Radius <span id="radius-val">0.5</span></label>
+      <input type="range" id="radius" min="0.05" max="2.0" step="0.01" value="0.5">
+    </div>
+    <h3>Invariants</h3>
+    <div class="stat-grid">
+      <div class="stat"><div class="label">Euler χ</div><div class="value" id="chi">—</div></div>
+      <div class="stat"><div class="label">Dimension</div><div class="value" id="dim">—</div></div>
+      <div class="stat"><div class="label">Simplices</div><div class="value" id="nsimplices">—</div></div>
+      <div class="stat"><div class="label">Entropy</div><div class="value" id="entropy">—</div></div>
+    </div>
+    <div id="betti-display"></div>
+    <div id="fvec-display"></div>
+  </div>
+
+  <!-- Center: Waveform / Audio -->
+  <div class="panel">
+    <h2>Signal Chain</h2>
+    <canvas id="waveform-canvas" width="1200" height="240"></canvas>
+    <div class="button-row">
+      <button id="btn-play">Play Drone</button>
+      <button id="btn-pluck" class="secondary">Pluck</button>
+      <button id="btn-morse" class="secondary">Play Morse</button>
+      <button id="btn-stop" class="danger">Stop</button>
+    </div>
+
+    <h3>Mixer</h3>
+    <div class="slider-group">
+      <label>Drone <span id="drone-val">0.5</span></label>
+      <input type="range" id="drone-level" min="0" max="1" step="0.01" value="0.5">
+    </div>
+    <div class="slider-group">
+      <label>Pluck <span id="pluck-val">0.3</span></label>
+      <input type="range" id="pluck-level" min="0" max="1" step="0.01" value="0.3">
+    </div>
+    <div class="slider-group">
+      <label>Morse <span id="morse-val">0.4</span></label>
+      <input type="range" id="morse-level" min="0" max="1" step="0.01" value="0.4">
+    </div>
+    <div class="slider-group">
+      <label>Master <span id="master-val">0.7</span></label>
+      <input type="range" id="master-level" min="0" max="1" step="0.01" value="0.7">
+    </div>
+    <div class="slider-group">
+      <label>Base Freq <span id="freq-val">220</span> Hz</label>
+      <input type="range" id="base-freq" min="55" max="880" step="1" value="220">
+    </div>
+
+    <h3>Persistence Diagram</h3>
+    <canvas id="persistence-canvas" width="1200" height="400"></canvas>
+  </div>
+
+  <!-- Right: Log / Info -->
+  <div class="panel">
+    <h2>Console</h2>
+    <div id="log"></div>
+
+    <h3>Architecture</h3>
+    <p style="font-size:0.72rem; color:var(--dim); margin-top:0.5rem;">
+      Topology → Invariants → Instruments → Effects → Output
+    </p>
+    <p style="font-size:0.72rem; color:var(--dim); margin-top:0.5rem;">
+      β₀ → oscillator count<br>
+      β₁ → LFO modulation depth<br>
+      β₂ → sub-oscillator layers<br>
+      f-vector → just intonation ratios<br>
+      χ → reverb character<br>
+      persistence → delay taps<br>
+    </p>
+
+    <h3>Links</h3>
+    <p style="font-size:0.72rem; margin-top:0.5rem;">
+      <a href="../docs/index.html" style="color:var(--accent);">Seminar Notes →</a><br>
+      <a href="../docs/05-storyboard.html" style="color:var(--accent);">Design Storyboard →</a>
+    </p>
+  </div>
+</div>
+
+<script type="module">
+// ─── WASM Loading ────────────────────────────────────────────────
+// Try to load the WASM module. If it fails (not built yet), fall back to JS.
+let wasm = null;
+let wasmReady = false;
+
+try {
+  const wasmModule = await import('../pkg/topo_sonify.js');
+  await wasmModule.default();
+  wasm = wasmModule;
+  wasmReady = true;
+  console.log('WASM loaded — using Rust topology engine');
+} catch (e) {
+  console.log('WASM not available — using JS fallback. Build with: wasm-pack build --target web');
+}
+
+// ─── State ────────────────────────────────────────────────────────
+let points = [];
+let audioCtx = null;
+let scriptNode = null;
+let sonifier = null;  // WasmSonifier instance (when WASM available)
+
+const log = (msg) => {
+  const el = document.getElementById('log');
+  const t = new Date().toLocaleTimeString('en', {hour12:false});
+  el.innerHTML += `<div class="entry"><span class="time">${t}</span> ${msg}</div>`;
+  el.scrollTop = el.scrollHeight;
+};
+
+// ─── Canvas: Point Cloud / Complex ──────────────────────────────
+const ccanvas = document.getElementById('complex-canvas');
+const cctx = ccanvas.getContext('2d');
+
+const drawComplex = () => {
+  const w = ccanvas.width, h = ccanvas.height;
+  cctx.fillStyle = '#12121a';
+  cctx.fillRect(0, 0, w, h);
+
+  if (points.length === 0) return;
+
+  const radius = parseFloat(document.getElementById('radius').value);
+
+  // Draw edges
+  cctx.strokeStyle = '#2a2a5a';
+  cctx.lineWidth = 1;
+  for (let i = 0; i < points.length; i++) {
+    for (let j = i + 1; j < points.length; j++) {
+      const dx = points[i][0] - points[j][0];
+      const dy = points[i][1] - points[j][1];
+      if (Math.sqrt(dx*dx + dy*dy) <= radius) {
+        cctx.beginPath();
+        cctx.moveTo(points[i][0] * w, points[i][1] * h);
+        cctx.lineTo(points[j][0] * w, points[j][1] * h);
+        cctx.stroke();
+      }
+    }
+  }
+
+  // Draw triangles (filled)
+  cctx.fillStyle = 'rgba(123, 104, 238, 0.08)';
+  for (let i = 0; i < points.length; i++) {
+    for (let j = i+1; j < points.length; j++) {
+      const d1 = dist(points[i], points[j]);
+      if (d1 > radius) continue;
+      for (let k = j+1; k < points.length; k++) {
+        if (dist(points[i], points[k]) <= radius && dist(points[j], points[k]) <= radius) {
+          cctx.beginPath();
+          cctx.moveTo(points[i][0]*w, points[i][1]*h);
+          cctx.lineTo(points[j][0]*w, points[j][1]*h);
+          cctx.lineTo(points[k][0]*w, points[k][1]*h);
+          cctx.closePath();
+          cctx.fill();
+        }
+      }
+    }
+  }
+
+  // Draw vertices
+  points.forEach((p, i) => {
+    cctx.beginPath();
+    cctx.arc(p[0] * w, p[1] * h, 4, 0, Math.PI * 2);
+    cctx.fillStyle = '#7b68ee';
+    cctx.fill();
+  });
+};
+
+const dist = (a, b) => Math.sqrt((a[0]-b[0])**2 + (a[1]-b[1])**2);
+
+// Click to add points
+ccanvas.addEventListener('click', (e) => {
+  const rect = ccanvas.getBoundingClientRect();
+  const x = (e.clientX - rect.left) / rect.width;
+  const y = (e.clientY - rect.top) / rect.height;
+  points.push([x, y]);
+  drawComplex();
+  updateTopology();
+  log(`Point added (${x.toFixed(2)}, ${y.toFixed(2)}), ${points.length} total`);
+});
+
+// ─── Topology computation ───────────────────────────────────────
+// Uses WASM (Rust engine) when available; JS fallback otherwise.
+const updateTopology = () => {
+  const radius = parseFloat(document.getElementById('radius').value);
+  const n = points.length;
+  if (n === 0) return;
+
+  if (wasmReady) {
+    // ── WASM path: exact computation via Rust ──
+    const flat = new Float64Array(points.flat());
+    const infoJson = wasm.WasmTopology.complex_info(flat, radius);
+    const info = JSON.parse(infoJson);
+
+    document.getElementById('chi').textContent = info.euler;
+    document.getElementById('dim').textContent = info.dimension;
+    document.getElementById('nsimplices').textContent = info.num_simplices;
+
+    const bettiEl = document.getElementById('betti-display');
+    bettiEl.innerHTML = info.betti.map((b, k) =>
+      `<span class="badge">β${String.fromCharCode(8320+k)}=${b}</span>`
+    ).join('');
+
+    const fvecEl = document.getElementById('fvec-display');
+    fvecEl.innerHTML = `<span class="badge">f=(${info.f_vector.join(',')})</span>`;
+
+    // Compute entropy via persistence.
+    const pdJson = wasm.WasmTopology.persistence_from_points(flat, radius);
+    const pairs = JSON.parse(pdJson);
+    const finitePers = pairs.filter(p => p.death !== Infinity).map(p => p.death - p.birth);
+    const totalPers = finitePers.reduce((a, b) => a + b, 0);
+    let entropy = 0;
+    if (totalPers > 0) {
+      entropy = finitePers.reduce((h, p) => {
+        const prob = p / totalPers;
+        return prob > 0 ? h - prob * Math.log(prob) : h;
+      }, 0);
+    }
+    document.getElementById('entropy').textContent = entropy.toFixed(3);
+
+    drawPersistenceFromPairs(pairs, radius);
+    log(`WASM: β=${JSON.stringify(info.betti)}, χ=${info.euler}, ${pairs.length} persistence pairs`);
+
+  } else {
+    // ── JS fallback path ──
+    let f0 = n, f1 = 0, f2 = 0;
+    const edges = [];
+    for (let i = 0; i < n; i++) {
+      for (let j = i+1; j < n; j++) {
+        if (dist(points[i], points[j]) <= radius) {
+          f1++;
+          edges.push([i, j]);
+        }
+      }
+    }
+    for (let i = 0; i < n; i++) {
+      for (let j = i+1; j < n; j++) {
+        if (dist(points[i], points[j]) > radius) continue;
+        for (let k = j+1; k < n; k++) {
+          if (dist(points[i], points[k]) <= radius && dist(points[j], points[k]) <= radius) f2++;
+        }
+      }
+    }
+
+    const chi = f0 - f1 + f2;
+    const parent = Array.from({length: n}, (_, i) => i);
+    const find = (x) => { while (parent[x] !== x) { parent[x] = parent[parent[x]]; x = parent[x]; } return x; };
+    edges.forEach(([a, b]) => { parent[find(a)] = find(b); });
+    const b0 = new Set(Array.from({length: n}, (_, i) => find(i))).size;
+    const b1 = Math.max(0, f1 - (f0 - b0) - f2);
+
+    document.getElementById('chi').textContent = chi;
+    document.getElementById('dim').textContent = f2 > 0 ? '2' : f1 > 0 ? '1' : '0';
+    document.getElementById('nsimplices').textContent = f0 + f1 + f2;
+
+    const bettiEl = document.getElementById('betti-display');
+    bettiEl.innerHTML = `<span class="badge">β₀=${b0}</span><span class="badge">β₁=${b1}</span>`;
+
+    const fvecEl = document.getElementById('fvec-display');
+    fvecEl.innerHTML = `<span class="badge">f=(${f0},${f1},${f2})</span>`;
+
+    drawPersistenceFallback();
+  }
+};
+
+// ─── Persistence Diagram Drawing ────────────────────────────────
+
+// Draw persistence diagram from WASM-computed pairs.
+const drawPersistenceFromPairs = (pairs, maxRadius) => {
+  const canvas = document.getElementById('persistence-canvas');
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height;
+  ctx.fillStyle = '#12121a';
+  ctx.fillRect(0, 0, w, h);
+
+  const maxVal = maxRadius * 1.2;
+
+  // Diagonal
+  ctx.strokeStyle = '#2a2a3a';
+  ctx.beginPath();
+  ctx.moveTo(0, h);
+  ctx.lineTo(w, 0);
+  ctx.stroke();
+
+  ctx.font = '10px monospace';
+  ctx.fillStyle = '#444';
+  ctx.fillText('birth →', 10, h - 10);
+  ctx.fillText('↑ death', 10, 15);
+
+  const colors = ['#7b68ee', '#ff6b6b', '#4ecdc4', '#e0af68'];
+  pairs.forEach(p => {
+    if (p.death === Infinity || p.death < 0) return; // skip essential classes for now
+    const x = (p.birth / maxVal) * w;
+    const y = h - (p.death / maxVal) * h;
+    const r = Math.min(8, 2 + (p.death - p.birth) / maxVal * 20); // size ∝ persistence
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fillStyle = colors[p.dimension] || '#888';
+    ctx.globalAlpha = 0.8;
+    ctx.fill();
+    ctx.globalAlpha = 1.0;
+  });
+
+  // Legend
+  ctx.font = '9px monospace';
+  ['H₀', 'H₁', 'H₂', 'H₃'].forEach((label, i) => {
+    ctx.fillStyle = colors[i] || '#888';
+    ctx.fillRect(w - 60, 10 + i * 15, 8, 8);
+    ctx.fillStyle = '#888';
+    ctx.fillText(label, w - 48, 18 + i * 15);
+  });
+};
+
+// JS fallback persistence drawing (approximate).
+const drawPersistenceFallback = () => {
+  const canvas = document.getElementById('persistence-canvas');
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height;
+  ctx.fillStyle = '#12121a';
+  ctx.fillRect(0, 0, w, h);
+
+  ctx.strokeStyle = '#2a2a3a';
+  ctx.beginPath();
+  ctx.moveTo(0, h);
+  ctx.lineTo(w, 0);
+  ctx.stroke();
+
+  ctx.font = '10px monospace';
+  ctx.fillStyle = '#444';
+  ctx.fillText('birth →', 10, h - 10);
+  ctx.fillText('↑ death', 10, 15);
+
+  if (points.length < 2) return;
+
+  const maxDist = 2.0;
+  const steps = 30;
+  const stepSize = maxDist / steps;
+  let prevComponents = points.length;
+  const pairs = [];
+
+  for (let s = 1; s <= steps; s++) {
+    const r = s * stepSize;
+    const parent = Array.from({length: points.length}, (_, i) => i);
+    const find = (x) => { while (parent[x] !== x) { parent[x] = parent[parent[x]]; x = parent[x]; } return x; };
+    for (let i = 0; i < points.length; i++) {
+      for (let j = i+1; j < points.length; j++) {
+        if (dist(points[i], points[j]) <= r) parent[find(i)] = find(j);
+      }
+    }
+    const comps = new Set(Array.from({length: points.length}, (_, i) => find(i))).size;
+    if (comps < prevComponents) {
+      for (let k = 0; k < prevComponents - comps; k++) {
+        pairs.push({birth: (s-1)*stepSize, death: r, dimension: 0});
+      }
+    }
+    prevComponents = comps;
+  }
+
+  drawPersistenceFromPairs(pairs, maxDist);
+};
+
+// ─── Audio Engine ───────────────────────────────────────────────
+// WASM path: creates a WasmSonifier that runs the full Rust signal chain.
+// JS fallback: simple Web Audio oscillators.
+
+const createWasmAudio = () => {
+  if (!audioCtx) audioCtx = new AudioContext();
+  const radius = parseFloat(document.getElementById('radius').value);
+  const baseFreq = parseFloat(document.getElementById('base-freq').value);
+  const sr = audioCtx.sampleRate;
+
+  if (points.length === 0) {
+    log('Add points first');
+    return;
+  }
+
+  // Create the Rust sonifier.
+  const flat = new Float64Array(points.flat());
+  sonifier = new wasm.WasmSonifier(flat, radius, baseFreq, sr);
+
+  // Set levels from sliders.
+  sonifier.set_levels(
+    parseFloat(document.getElementById('drone-level').value),
+    parseFloat(document.getElementById('pluck-level').value),
+    parseFloat(document.getElementById('morse-level').value),
+    parseFloat(document.getElementById('master-level').value)
+  );
+
+  // ScriptProcessor to pull samples from Rust.
+  const bufSize = 2048;
+  scriptNode = audioCtx.createScriptProcessor(bufSize, 0, 1);
+  scriptNode.onaudioprocess = (e) => {
+    const output = e.outputBuffer.getChannelData(0);
+    const buf = new Float64Array(bufSize);
+    sonifier.fill_buffer(buf);
+    for (let i = 0; i < bufSize; i++) output[i] = buf[i];
+  };
+  scriptNode.connect(audioCtx.destination);
+
+  const state = JSON.parse(sonifier.topology_state_json());
+  log(`WASM audio: β=${JSON.stringify(state.betti_numbers)}, χ=${state.euler_characteristic}, gap=${state.spectral_gap.toFixed(2)}`);
+};
+
+document.getElementById('btn-play').addEventListener('click', () => {
+  if (wasmReady) {
+    if (scriptNode) { scriptNode.disconnect(); scriptNode = null; }
+    createWasmAudio();
+    return;
+  }
+
+  // ── JS fallback ──
+  if (!audioCtx) audioCtx = new AudioContext();
+  const radius = parseFloat(document.getElementById('radius').value);
+  const baseFreq = parseFloat(document.getElementById('base-freq').value);
+  const n = points.length || 3;
+
+  const parent = Array.from({length: n}, (_, i) => i);
+  const find = (x) => { while (parent[x] !== x) { parent[x] = parent[parent[x]]; x = parent[x]; } return x; };
+  for (let i = 0; i < points.length; i++) {
+    for (let j = i+1; j < points.length; j++) {
+      if (dist(points[i], points[j]) <= radius) parent[find(i)] = find(j);
+    }
+  }
+  const b0 = points.length > 0 ? new Set(Array.from({length: n}, (_, i) => find(i))).size : 1;
+
+  const oscs = [];
+  for (let i = 0; i < Math.min(b0, 8); i++) {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.frequency.value = baseFreq * (1 + i * 0.01);
+    osc.type = 'sawtooth';
+    gain.gain.value = parseFloat(document.getElementById('drone-level').value) / b0;
+    osc.connect(gain).connect(audioCtx.destination);
+    osc.start();
+    oscs.push({osc, gain});
+  }
+  window._activeOscs = oscs;
+  log(`JS fallback: ${b0} voices at ${baseFreq} Hz`);
+});
+
+document.getElementById('btn-stop').addEventListener('click', () => {
+  if (scriptNode) { scriptNode.disconnect(); scriptNode = null; }
+  if (sonifier) { sonifier = null; }
+  if (window._activeOscs) {
+    window._activeOscs.forEach(({osc}) => osc.stop());
+    window._activeOscs = null;
+  }
+  log('Stopped');
+});
+
+document.getElementById('btn-pluck').addEventListener('click', () => {
+  if (wasmReady && sonifier) {
+    sonifier.pluck();
+    log('Plucked (WASM)');
+    return;
+  }
+  // JS fallback: Karplus-Strong
+  if (!audioCtx) audioCtx = new AudioContext();
+  const baseFreq = parseFloat(document.getElementById('base-freq').value);
+  const sr = audioCtx.sampleRate;
+  const len = Math.round(sr / baseFreq);
+  const buffer = audioCtx.createBuffer(1, sr, sr);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
+  for (let i = len; i < sr; i++) data[i] = (data[i-len] + data[i-len+1]) * 0.5 * 0.996;
+  const src = audioCtx.createBufferSource();
+  src.buffer = buffer;
+  const gain = audioCtx.createGain();
+  gain.gain.value = parseFloat(document.getElementById('pluck-level').value);
+  src.connect(gain).connect(audioCtx.destination);
+  src.start();
+  log(`Plucked at ${baseFreq} Hz (JS fallback)`);
+});
+
+document.getElementById('btn-morse').addEventListener('click', () => {
+  if (wasmReady) {
+    if (scriptNode) { scriptNode.disconnect(); scriptNode = null; }
+    createWasmAudio();
+    // Boost morse level
+    if (sonifier) sonifier.set_levels(0.1, 0.0, 0.8, 0.7);
+    log('Morse playback (WASM)');
+  } else {
+    log('Morse requires WASM — build with: wasm-pack build --target web');
+  }
+});
+
+// ─── Controls ───────────────────────────────────────────────────
+document.getElementById('radius').addEventListener('input', (e) => {
+  document.getElementById('radius-val').textContent = e.target.value;
+  drawComplex();
+  updateTopology();
+});
+
+['drone-level', 'pluck-level', 'morse-level', 'master-level', 'base-freq'].forEach(id => {
+  document.getElementById(id).addEventListener('input', (e) => {
+    const valId = id.replace('-level', '-val').replace('base-', '');
+    const el = document.getElementById(valId) || document.getElementById(id.replace('-', '-') + '-val');
+    // find the span
+    const label = e.target.previousElementSibling;
+    if (label) {
+      const span = label.querySelector('span');
+      if (span) span.textContent = e.target.value;
+    }
+  });
+});
+
+document.getElementById('btn-clear').addEventListener('click', () => {
+  points = [];
+  drawComplex();
+  document.getElementById('chi').textContent = '—';
+  document.getElementById('dim').textContent = '—';
+  document.getElementById('nsimplices').textContent = '—';
+  document.getElementById('betti-display').innerHTML = '';
+  document.getElementById('fvec-display').innerHTML = '';
+  log('Cleared');
+});
+
+document.getElementById('btn-random').addEventListener('click', () => {
+  points = Array.from({length: 12}, () => [Math.random() * 0.8 + 0.1, Math.random() * 0.8 + 0.1]);
+  drawComplex();
+  updateTopology();
+  log('Random cloud: 12 points');
+});
+
+document.getElementById('btn-circle').addEventListener('click', () => {
+  const n = 10;
+  points = Array.from({length: n}, (_, i) => {
+    const a = (i / n) * Math.PI * 2;
+    return [0.5 + 0.3 * Math.cos(a), 0.5 + 0.3 * Math.sin(a)];
+  });
+  drawComplex();
+  updateTopology();
+  log('Circle: 10 points on S¹');
+});
+
+document.getElementById('btn-torus').addEventListener('click', () => {
+  points = [];
+  for (let i = 0; i < 8; i++) {
+    for (let j = 0; j < 8; j++) {
+      const a = (i / 8) * Math.PI * 2;
+      const b = (j / 8) * Math.PI * 2;
+      const R = 0.3, r = 0.12;
+      points.push([0.5 + (R + r * Math.cos(b)) * Math.cos(a) * 0.8,
+                    0.5 + (R + r * Math.cos(b)) * Math.sin(a) * 0.8]);
+    }
+  }
+  drawComplex();
+  updateTopology();
+  log('Torus sample: 64 points on T²');
+});
+
+// Waveform visualizer
+const wcanvas = document.getElementById('waveform-canvas');
+const wctx = wcanvas.getContext('2d');
+const drawWaveform = () => {
+  const w = wcanvas.width, h = wcanvas.height;
+  wctx.fillStyle = '#12121a';
+  wctx.fillRect(0, 0, w, h);
+  wctx.strokeStyle = '#7b68ee';
+  wctx.lineWidth = 1.5;
+  wctx.beginPath();
+  if (audioCtx && audioCtx.state === 'running') {
+    // Simple animated sine for visual feedback
+    const t = performance.now() / 1000;
+    for (let x = 0; x < w; x++) {
+      const v = Math.sin(x * 0.02 + t * 5) * 0.3
+              + Math.sin(x * 0.05 + t * 3) * 0.2
+              + Math.sin(x * 0.01 + t * 7) * 0.15;
+      const y = h / 2 + v * h / 2;
+      x === 0 ? wctx.moveTo(x, y) : wctx.lineTo(x, y);
+    }
+    wctx.stroke();
+  } else {
+    wctx.strokeStyle = '#2a2a3a';
+    wctx.beginPath();
+    wctx.moveTo(0, h/2);
+    wctx.lineTo(w, h/2);
+    wctx.stroke();
+  }
+  requestAnimationFrame(drawWaveform);
+};
+drawWaveform();
+
+log('topo-sonify loaded. Click canvas to add points.');
+log(wasmReady
+  ? 'WASM engine active — Rust topology + audio.'
+  : 'JS fallback mode. Run: wasm-pack build --target web');
+log('Adjust radius to build the Vietoris-Rips complex.');
+</script>
+</body>
+</html>

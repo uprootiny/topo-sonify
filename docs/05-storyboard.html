@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Design Storyboard &mdash; Topology-First Sonification</title>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --bg-code: #111118;
+    --fg: #c8c8d0;
+    --fg-dim: #6a6a7a;
+    --fg-bright: #e8e8f0;
+    --accent: #7aa2f7;
+    --accent2: #9ece6a;
+    --accent3: #bb9af7;
+    --accent4: #f7768e;
+    --accent5: #e0af68;
+    --border: #1a1a2e;
+    --link: #7aa2f7;
+    --link-hover: #9dc0ff;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: 'Berkeley Mono', 'JetBrains Mono', 'Fira Code', 'SF Mono', 'Cascadia Code', monospace;
+    font-size: 15px;
+    line-height: 1.75;
+    max-width: 52em;
+    margin: 0 auto;
+    padding: 3em 2em 6em;
+  }
+  h1, h2, h3, h4 { color: var(--fg-bright); font-weight: 600; margin-top: 2.5em; margin-bottom: 0.75em; }
+  h1 { font-size: 1.8em; border-bottom: 2px solid var(--accent); padding-bottom: 0.4em; margin-top: 0; }
+  h2 { font-size: 1.4em; border-bottom: 1px solid var(--border); padding-bottom: 0.3em; }
+  h3 { font-size: 1.15em; color: var(--accent3); }
+  h4 { font-size: 1.0em; color: var(--accent5); }
+  p { margin-bottom: 1em; }
+  a { color: var(--link); text-decoration: none; border-bottom: 1px solid transparent; transition: border-color 0.2s; }
+  a:hover { color: var(--link-hover); border-bottom-color: var(--link-hover); }
+  ul, ol { margin-bottom: 1em; padding-left: 1.5em; }
+  li { margin-bottom: 0.35em; }
+  blockquote { border-left: 3px solid var(--accent3); padding: 0.75em 1.25em; margin: 1.5em 0; background: rgba(187,154,247,0.05); font-style: italic; }
+  pre { background: var(--bg-code); border: 1px solid var(--border); border-radius: 4px; padding: 1.25em; overflow-x: auto; margin: 1.5em 0; font-size: 0.9em; line-height: 1.6; }
+  code { background: var(--bg-code); padding: 0.15em 0.4em; border-radius: 3px; font-size: 0.92em; }
+  pre code { background: none; padding: 0; }
+  .keyword { color: var(--accent3); }
+  .type { color: var(--accent); }
+  .comment { color: var(--fg-dim); font-style: italic; }
+  .number { color: var(--accent5); }
+  .nav { display: flex; justify-content: space-between; align-items: center; padding: 1em 0; border-bottom: 1px solid var(--border); margin-bottom: 2em; flex-wrap: wrap; gap: 0.5em; }
+  .nav a { color: var(--fg-dim); font-size: 0.85em; padding: 0.3em 0.6em; border: 1px solid var(--border); border-radius: 3px; transition: all 0.2s; }
+  .nav a:hover { color: var(--accent); border-color: var(--accent); }
+  .nav a.active { color: var(--accent); border-color: var(--accent); }
+  .definition { border-left: 3px solid var(--accent); padding: 1em 1.25em; margin: 1.5em 0; background: rgba(122,162,247,0.04); }
+  .definition .label { color: var(--accent); font-weight: 600; margin-bottom: 0.5em; }
+  .remark { border-left: 3px solid var(--accent5); padding: 1em 1.25em; margin: 1.5em 0; background: rgba(224,175,104,0.04); }
+  .remark .label { color: var(--accent5); font-weight: 600; margin-bottom: 0.5em; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 3em 0; }
+  .footer { margin-top: 4em; padding-top: 1.5em; border-top: 1px solid var(--border); color: var(--fg-dim); font-size: 0.85em; text-align: center; }
+  table { border-collapse: collapse; margin: 1.5em 0; width: 100%; font-size: 0.92em; }
+  th, td { padding: 0.5em 0.8em; border: 1px solid var(--border); text-align: left; }
+  th { background: var(--bg-code); color: var(--accent); text-align: center; }
+  .signal-chain { background: var(--bg-code); border: 1px solid var(--border); border-radius: 4px; padding: 2em; margin: 2em 0; font-size: 0.82em; line-height: 1.5; overflow-x: auto; white-space: pre; }
+  svg { display: block; margin: 1.5em auto; }
+  .scenario { border: 1px solid var(--border); border-radius: 4px; padding: 1.5em; margin: 1.5em 0; background: var(--bg-code); }
+  .scenario h4 { margin-top: 0; }
+  .storyboard-frame {
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1.5em;
+    margin: 1.5em 0;
+    background: var(--bg-code);
+    display: flex;
+    gap: 2em;
+    align-items: flex-start;
+  }
+  .storyboard-frame .frame-visual {
+    flex: 0 0 200px;
+    text-align: center;
+  }
+  .storyboard-frame .frame-desc {
+    flex: 1;
+  }
+  .frame-number {
+    display: inline-block;
+    width: 2em;
+    height: 2em;
+    line-height: 2em;
+    text-align: center;
+    border-radius: 50%;
+    background: var(--accent);
+    color: var(--bg);
+    font-weight: 700;
+    margin-bottom: 0.5em;
+  }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a href="index.html">Home</a>
+  <a href="01-simplicial-complexes.html">Ch.1 Simplices</a>
+  <a href="02-homology.html">Ch.2 Homology</a>
+  <a href="03-persistent-homology.html">Ch.3 Persistence</a>
+  <a href="04-sonification-mapping.html">Ch.4 Sonification</a>
+  <a class="active" href="05-storyboard.html">Storyboard</a>
+</nav>
+
+<h1>Design Storyboard</h1>
+<p style="color: var(--fg-dim);">Interaction design, architecture, and future directions</p>
+
+<!-- ================================================================ -->
+<h2>S.1 Signal Flow Diagram</h2>
+
+<p>
+The complete signal flow from user input to audio output. Each box is a module
+in the Rust codebase; arrows indicate data dependencies.
+</p>
+
+<svg viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg" style="max-width: 100%; height: auto;">
+  <!-- Background -->
+  <rect width="800" height="600" fill="#0a0a0f"/>
+
+  <!-- User Input -->
+  <rect x="20" y="20" width="160" height="50" rx="4" fill="none" stroke="#e0af68" stroke-width="1.5"/>
+  <text x="100" y="50" text-anchor="middle" fill="#e0af68" font-family="monospace" font-size="13">User Input</text>
+  <text x="100" y="62" text-anchor="middle" fill="#6a6a7a" font-family="monospace" font-size="10">(click/drag points)</text>
+
+  <!-- Arrow down -->
+  <line x1="100" y1="70" x2="100" y2="100" stroke="#6a6a7a" stroke-width="1"/>
+  <polygon points="95,100 105,100 100,108" fill="#6a6a7a"/>
+
+  <!-- Point Cloud -->
+  <rect x="20" y="110" width="160" height="40" rx="4" fill="none" stroke="#7aa2f7" stroke-width="1.5"/>
+  <text x="100" y="135" text-anchor="middle" fill="#7aa2f7" font-family="monospace" font-size="12">Point Cloud P</text>
+
+  <!-- Arrow to VR -->
+  <line x1="100" y1="150" x2="100" y2="180" stroke="#6a6a7a" stroke-width="1"/>
+  <polygon points="95,180 105,180 100,188" fill="#6a6a7a"/>
+
+  <!-- VR Complex -->
+  <rect x="20" y="190" width="160" height="40" rx="4" fill="none" stroke="#7aa2f7" stroke-width="1.5"/>
+  <text x="100" y="215" text-anchor="middle" fill="#7aa2f7" font-family="monospace" font-size="12">VR(P, r)</text>
+
+  <!-- Arrow to invariants -->
+  <line x1="180" y1="210" x2="240" y2="210" stroke="#6a6a7a" stroke-width="1"/>
+  <polygon points="240,205 240,215 248,210" fill="#6a6a7a"/>
+
+  <!-- Invariants box -->
+  <rect x="250" y="130" width="180" height="170" rx="4" fill="none" stroke="#bb9af7" stroke-width="1.5"/>
+  <text x="340" y="150" text-anchor="middle" fill="#bb9af7" font-family="monospace" font-size="13">Invariants</text>
+  <text x="340" y="175" text-anchor="middle" fill="#c8c8d0" font-family="monospace" font-size="11">beta_0, beta_1, beta_2</text>
+  <text x="340" y="195" text-anchor="middle" fill="#c8c8d0" font-family="monospace" font-size="11">f-vector (f0,f1,f2)</text>
+  <text x="340" y="215" text-anchor="middle" fill="#c8c8d0" font-family="monospace" font-size="11">chi (Euler char)</text>
+  <text x="340" y="235" text-anchor="middle" fill="#c8c8d0" font-family="monospace" font-size="11">Dgm (persistence)</text>
+  <text x="340" y="260" text-anchor="middle" fill="#c8c8d0" font-family="monospace" font-size="11">H (entropy)</text>
+  <text x="340" y="285" text-anchor="middle" fill="#c8c8d0" font-family="monospace" font-size="11">lambda_k (landscape)</text>
+
+  <!-- Arrows to instruments -->
+  <line x1="430" y1="170" x2="510" y2="170" stroke="#6a6a7a" stroke-width="1"/>
+  <line x1="430" y1="210" x2="510" y2="250" stroke="#6a6a7a" stroke-width="1"/>
+  <line x1="430" y1="260" x2="510" y2="330" stroke="#6a6a7a" stroke-width="1"/>
+  <polygon points="510,165 510,175 518,170" fill="#6a6a7a"/>
+  <polygon points="510,245 510,255 518,250" fill="#6a6a7a"/>
+  <polygon points="510,325 510,335 518,330" fill="#6a6a7a"/>
+
+  <!-- Instruments -->
+  <rect x="520" y="140" width="150" height="50" rx="4" fill="none" stroke="#9ece6a" stroke-width="1.5"/>
+  <text x="595" y="162" text-anchor="middle" fill="#9ece6a" font-family="monospace" font-size="12">BettiDrone</text>
+  <text x="595" y="178" text-anchor="middle" fill="#6a6a7a" font-family="monospace" font-size="9">beta -> voices + LFO</text>
+
+  <rect x="520" y="220" width="150" height="50" rx="4" fill="none" stroke="#9ece6a" stroke-width="1.5"/>
+  <text x="595" y="242" text-anchor="middle" fill="#9ece6a" font-family="monospace" font-size="12">SimplicialPluck</text>
+  <text x="595" y="258" text-anchor="middle" fill="#6a6a7a" font-family="monospace" font-size="9">f-vec -> KS excite</text>
+
+  <rect x="520" y="300" width="150" height="50" rx="4" fill="none" stroke="#9ece6a" stroke-width="1.5"/>
+  <text x="595" y="322" text-anchor="middle" fill="#9ece6a" font-family="monospace" font-size="12">MorseSynth</text>
+  <text x="595" y="338" text-anchor="middle" fill="#6a6a7a" font-family="monospace" font-size="9">pers -> score</text>
+
+  <!-- Mixer -->
+  <line x1="670" y1="165" x2="720" y2="250" stroke="#6a6a7a" stroke-width="1"/>
+  <line x1="670" y1="245" x2="720" y2="250" stroke="#6a6a7a" stroke-width="1"/>
+  <line x1="670" y1="325" x2="720" y2="250" stroke="#6a6a7a" stroke-width="1"/>
+  <circle cx="720" cy="250" r="10" fill="none" stroke="#c8c8d0" stroke-width="1"/>
+  <text x="720" y="254" text-anchor="middle" fill="#c8c8d0" font-family="monospace" font-size="12">+</text>
+
+  <!-- Effects chain -->
+  <line x1="730" y1="250" x2="760" y2="250" stroke="#6a6a7a" stroke-width="1"/>
+
+  <!-- Effects -->
+  <rect x="520" y="400" width="250" height="120" rx="4" fill="none" stroke="#f7768e" stroke-width="1.5"/>
+  <text x="645" y="420" text-anchor="middle" fill="#f7768e" font-family="monospace" font-size="13">Effects Chain</text>
+  <text x="645" y="445" text-anchor="middle" fill="#c8c8d0" font-family="monospace" font-size="11">BettiDistortion (beta -> fold)</text>
+  <text x="645" y="465" text-anchor="middle" fill="#c8c8d0" font-family="monospace" font-size="11">PersistenceDelay (dgm -> taps)</text>
+  <text x="645" y="485" text-anchor="middle" fill="#c8c8d0" font-family="monospace" font-size="11">CurvatureReverb (chi -> RT60)</text>
+  <text x="645" y="505" text-anchor="middle" fill="#6a6a7a" font-family="monospace" font-size="9">series: dist -> delay -> reverb</text>
+
+  <!-- Arrow from mixer to effects -->
+  <line x1="720" y1="260" x2="720" y2="400" stroke="#6a6a7a" stroke-width="1"/>
+  <polygon points="715,400 725,400 720,408" fill="#6a6a7a"/>
+
+  <!-- Output -->
+  <line x1="645" y1="520" x2="645" y2="560" stroke="#6a6a7a" stroke-width="1"/>
+  <polygon points="640,560 650,560 645,568" fill="#6a6a7a"/>
+  <rect x="570" y="570" width="150" height="30" rx="4" fill="none" stroke="#e0af68" stroke-width="1.5"/>
+  <text x="645" y="590" text-anchor="middle" fill="#e0af68" font-family="monospace" font-size="12">Audio Output</text>
+</svg>
+
+<!-- ================================================================ -->
+<h2>S.2 Architecture: Rust to WASM to Web Audio</h2>
+
+<div class="signal-chain">
+  LAYER 1: RUST CORE                    LAYER 2: WASM BRIDGE
+  ==================                    ====================
+
+  src/topology/                         wasm-bindgen exports:
+    simplex.rs                            - new_sonifier(points, radius, freq)
+    complex.rs                            - add_point(x, y)
+    homology.rs                           - remove_point(idx)
+    persistence.rs                        - set_radius(r)
+                                          - next_sample() -> f64
+  src/audio/                              - fill_buffer(buf: &mut [f32])
+    oscillator.rs                         - get_topology_state() -> JsValue
+    filter.rs                             - pluck()
+    effects.rs                            - reset_morse()
+
+  src/instruments/
+    betti_drone.rs                      LAYER 3: WEB AUDIO
+    simplicial_pluck.rs                 ==================
+    morse_synth.rs
+                                        AudioWorkletProcessor:
+  src/mapping/                            - process(inputs, outputs, params)
+    sonifier.rs                           - calls wasm.fill_buffer() each quantum
+      (TopologySonifier)                  - 128 samples per quantum at 44100 Hz
+
+                                        Main Thread:
+                                          - Canvas rendering (point cloud + complex)
+                                          - UI controls (radius slider, base freq)
+                                          - Topology state display (Betti, f-vec, chi)
+                                          - Persistence diagram visualization
+</div>
+
+<h3>Data Flow</h3>
+
+<p>
+The architecture uses three layers with clear ownership boundaries:
+</p>
+
+<ol>
+  <li><strong>Rust core</strong> (compiled to WASM): owns all mathematical computation and
+    audio synthesis. Zero allocation in the audio path. All topology types are
+    <code>serde</code>-serializable for cross-boundary communication.</li>
+  <li><strong>WASM bridge</strong> (via <code>wasm-bindgen</code>): thin wrapper that exposes the
+    <code>TopologySonifier</code> API to JavaScript. Handles type conversion between
+    Rust types and <code>JsValue</code>.</li>
+  <li><strong>Web Audio</strong> (JavaScript): an <code>AudioWorkletProcessor</code> runs on the
+    audio rendering thread, calling into WASM for each 128-sample quantum.
+    The main thread handles UI, rendering, and user interaction.</li>
+</ol>
+
+<!-- ================================================================ -->
+<h2>S.3 Module Dependency Graph</h2>
+
+<svg viewBox="0 0 700 450" xmlns="http://www.w3.org/2000/svg" style="max-width: 100%; height: auto;">
+  <rect width="700" height="450" fill="#0a0a0f"/>
+
+  <!-- topology layer -->
+  <text x="120" y="30" text-anchor="middle" fill="#bb9af7" font-family="monospace" font-size="13" font-weight="bold">topology/</text>
+
+  <rect x="20" y="50" width="100" height="30" rx="3" fill="none" stroke="#7aa2f7" stroke-width="1"/>
+  <text x="70" y="70" text-anchor="middle" fill="#7aa2f7" font-family="monospace" font-size="11">simplex</text>
+
+  <rect x="140" y="50" width="100" height="30" rx="3" fill="none" stroke="#7aa2f7" stroke-width="1"/>
+  <text x="190" y="70" text-anchor="middle" fill="#7aa2f7" font-family="monospace" font-size="11">complex</text>
+
+  <rect x="260" y="50" width="100" height="30" rx="3" fill="none" stroke="#7aa2f7" stroke-width="1"/>
+  <text x="310" y="70" text-anchor="middle" fill="#7aa2f7" font-family="monospace" font-size="11">homology</text>
+
+  <rect x="380" y="50" width="120" height="30" rx="3" fill="none" stroke="#7aa2f7" stroke-width="1"/>
+  <text x="440" y="70" text-anchor="middle" fill="#7aa2f7" font-family="monospace" font-size="11">persistence</text>
+
+  <!-- simplex -> complex -->
+  <line x1="120" y1="65" x2="140" y2="65" stroke="#6a6a7a" stroke-width="1" marker-end="url(#arr)"/>
+  <!-- complex -> homology -->
+  <line x1="240" y1="65" x2="260" y2="65" stroke="#6a6a7a" stroke-width="1"/>
+  <!-- complex -> persistence -->
+  <line x1="240" y1="75" x2="380" y2="75" stroke="#6a6a7a" stroke-width="1" stroke-dasharray="3,3"/>
+  <!-- homology -> persistence -->
+  <line x1="360" y1="65" x2="380" y2="65" stroke="#6a6a7a" stroke-width="1"/>
+
+  <!-- audio layer -->
+  <text x="120" y="140" text-anchor="middle" fill="#bb9af7" font-family="monospace" font-size="13" font-weight="bold">audio/</text>
+
+  <rect x="20" y="155" width="110" height="30" rx="3" fill="none" stroke="#9ece6a" stroke-width="1"/>
+  <text x="75" y="175" text-anchor="middle" fill="#9ece6a" font-family="monospace" font-size="11">oscillator</text>
+
+  <rect x="150" y="155" width="100" height="30" rx="3" fill="none" stroke="#9ece6a" stroke-width="1"/>
+  <text x="200" y="175" text-anchor="middle" fill="#9ece6a" font-family="monospace" font-size="11">filter</text>
+
+  <rect x="270" y="155" width="100" height="30" rx="3" fill="none" stroke="#9ece6a" stroke-width="1"/>
+  <text x="320" y="175" text-anchor="middle" fill="#9ece6a" font-family="monospace" font-size="11">effects</text>
+
+  <!-- instruments layer -->
+  <text x="120" y="240" text-anchor="middle" fill="#bb9af7" font-family="monospace" font-size="13" font-weight="bold">instruments/</text>
+
+  <rect x="20" y="255" width="130" height="30" rx="3" fill="none" stroke="#e0af68" stroke-width="1"/>
+  <text x="85" y="275" text-anchor="middle" fill="#e0af68" font-family="monospace" font-size="11">betti_drone</text>
+
+  <rect x="170" y="255" width="150" height="30" rx="3" fill="none" stroke="#e0af68" stroke-width="1"/>
+  <text x="245" y="275" text-anchor="middle" fill="#e0af68" font-family="monospace" font-size="11">simplicial_pluck</text>
+
+  <rect x="340" y="255" width="130" height="30" rx="3" fill="none" stroke="#e0af68" stroke-width="1"/>
+  <text x="405" y="275" text-anchor="middle" fill="#e0af68" font-family="monospace" font-size="11">morse_synth</text>
+
+  <!-- Dependencies: instruments use audio -->
+  <line x1="85" y1="255" x2="75" y2="185" stroke="#6a6a7a" stroke-width="1" stroke-dasharray="3,3"/>
+  <line x1="85" y1="255" x2="200" y2="185" stroke="#6a6a7a" stroke-width="1" stroke-dasharray="3,3"/>
+  <line x1="245" y1="255" x2="200" y2="185" stroke="#6a6a7a" stroke-width="1" stroke-dasharray="3,3"/>
+  <line x1="405" y1="255" x2="75" y2="185" stroke="#6a6a7a" stroke-width="1" stroke-dasharray="3,3"/>
+
+  <!-- mapping layer -->
+  <text x="120" y="340" text-anchor="middle" fill="#bb9af7" font-family="monospace" font-size="13" font-weight="bold">mapping/</text>
+
+  <rect x="120" y="355" width="200" height="35" rx="3" fill="none" stroke="#f7768e" stroke-width="1.5"/>
+  <text x="220" y="378" text-anchor="middle" fill="#f7768e" font-family="monospace" font-size="13">TopologySonifier</text>
+
+  <!-- Sonifier uses everything -->
+  <line x1="220" y1="355" x2="85" y2="285" stroke="#f7768e" stroke-width="1" stroke-dasharray="2,2"/>
+  <line x1="220" y1="355" x2="245" y2="285" stroke="#f7768e" stroke-width="1" stroke-dasharray="2,2"/>
+  <line x1="220" y1="355" x2="405" y2="285" stroke="#f7768e" stroke-width="1" stroke-dasharray="2,2"/>
+  <line x1="320" y1="370" x2="320" y2="175" stroke="#f7768e" stroke-width="1" stroke-dasharray="2,2"/>
+  <line x1="220" y1="355" x2="310" y2="80" stroke="#f7768e" stroke-width="1" stroke-dasharray="2,2"/>
+  <line x1="220" y1="355" x2="440" y2="80" stroke="#f7768e" stroke-width="1" stroke-dasharray="2,2"/>
+
+  <!-- Legend -->
+  <text x="550" y="355" fill="#6a6a7a" font-family="monospace" font-size="10">solid = direct dep</text>
+  <text x="550" y="370" fill="#6a6a7a" font-family="monospace" font-size="10">dashed = uses</text>
+  <line x1="530" y1="350" x2="545" y2="350" stroke="#6a6a7a" stroke-width="1"/>
+  <line x1="530" y1="365" x2="545" y2="365" stroke="#6a6a7a" stroke-width="1" stroke-dasharray="3,3"/>
+</svg>
+
+<!-- ================================================================ -->
+<h2>S.4 Parameter Mapping Table</h2>
+
+<p>
+The complete mapping from topological invariants to audio parameters and their
+perceptual effects.
+</p>
+
+<table>
+  <tr>
+    <th>Invariant</th>
+    <th>Value range</th>
+    <th>Audio parameter</th>
+    <th>Module</th>
+    <th>Perceptual effect</th>
+  </tr>
+  <tr>
+    <td>\(\beta_0\)</td>
+    <td>\(\{1, 2, 3, \ldots\}\)</td>
+    <td>Oscillator count</td>
+    <td>BettiDrone</td>
+    <td>Polyphony: 1 = unison, 2+ = chord</td>
+  </tr>
+  <tr>
+    <td>\(\beta_1\)</td>
+    <td>\(\{0, 1, 2, \ldots\}\)</td>
+    <td>LFO count + depth</td>
+    <td>BettiDrone</td>
+    <td>Vibrato/tremolo: 0 = static, 1+ = animated</td>
+  </tr>
+  <tr>
+    <td>\(\beta_2\)</td>
+    <td>\(\{0, 1, 2, \ldots\}\)</td>
+    <td>Sub-oscillator count</td>
+    <td>BettiDrone</td>
+    <td>Bass depth: 0 = thin, 1+ = warm/full</td>
+  </tr>
+  <tr>
+    <td>\(\mathbf{f}\)</td>
+    <td>\((f_0, f_1, \ldots)\)</td>
+    <td>Harmonic ratios</td>
+    <td>BettiDrone</td>
+    <td>Interval quality: 3/2 = fifth, 2/1 = octave</td>
+  </tr>
+  <tr>
+    <td>\(\mathbf{f}\)</td>
+    <td>\((f_0, f_1, \ldots)\)</td>
+    <td>Excitation spectrum</td>
+    <td>SimplicialPluck</td>
+    <td>Pluck brightness and harmonic content</td>
+  </tr>
+  <tr>
+    <td>\(\beta_0\)</td>
+    <td>\(\{1, 2, \ldots, 4\}\)</td>
+    <td>Parallel delay lines</td>
+    <td>SimplicialPluck</td>
+    <td>Chorus/detuning of pluck strings</td>
+  </tr>
+  <tr>
+    <td>\(\beta_1\)</td>
+    <td>\(\{0, 1, \ldots\}\)</td>
+    <td>Feedback Q, damping</td>
+    <td>SimplicialPluck</td>
+    <td>Sustain: loops = more ring, less decay</td>
+  </tr>
+  <tr>
+    <td>\(\chi\)</td>
+    <td>\(\mathbb{Z}\)</td>
+    <td>RT60, damping coeff</td>
+    <td>CurvatureReverb</td>
+    <td>Room size/character: pos = tight, neg = cathedral</td>
+  </tr>
+  <tr>
+    <td>\(\mathrm{Dgm}\)</td>
+    <td>multiset of \((b,d)\)</td>
+    <td>Delay tap config</td>
+    <td>PersistenceDelay</td>
+    <td>Echo pattern: persistent features echo longer</td>
+  </tr>
+  <tr>
+    <td>\(\mathrm{Dgm}\)</td>
+    <td>multiset of \((b,d)\)</td>
+    <td>Event score</td>
+    <td>MorseSynth</td>
+    <td>Melody: births = notes on, deaths = notes off</td>
+  </tr>
+  <tr>
+    <td>\(\beta_0\)</td>
+    <td>\(\{1, 2, \ldots\}\)</td>
+    <td>Wavefold stages</td>
+    <td>BettiDistortion</td>
+    <td>Harmonic richness / grit</td>
+  </tr>
+  <tr>
+    <td>\(\beta_1\)</td>
+    <td>\(\{0, 1, \ldots\}\)</td>
+    <td>Feedback amount</td>
+    <td>BettiDistortion</td>
+    <td>Self-oscillation tendency</td>
+  </tr>
+  <tr>
+    <td>\(\beta_2\)</td>
+    <td>\(\{0, 1, \ldots\}\)</td>
+    <td>Transfer asymmetry</td>
+    <td>BettiDistortion</td>
+    <td>Even harmonics (warmth vs. sterility)</td>
+  </tr>
+  <tr>
+    <td>\(H\) (entropy)</td>
+    <td>\([0, \log n]\)</td>
+    <td>Global complexity</td>
+    <td>(future)</td>
+    <td>Texture density: low = sparse, high = dense</td>
+  </tr>
+</table>
+
+<!-- ================================================================ -->
+<h2>S.5 Interaction Storyboard</h2>
+
+<p>
+The following frames illustrate the user interaction flow, showing how topology
+changes drive sound transformations.
+</p>
+
+<div class="storyboard-frame">
+  <div class="frame-visual">
+    <span class="frame-number">1</span>
+    <p style="color: var(--fg-dim); font-size: 0.85em;">Empty canvas</p>
+    <svg viewBox="0 0 180 120" width="180" height="120">
+      <rect width="180" height="120" fill="#050508" rx="3"/>
+      <text x="90" y="65" text-anchor="middle" fill="#6a6a7a" font-family="monospace" font-size="11">click to begin</text>
+    </svg>
+  </div>
+  <div class="frame-desc">
+    <h4>Initial State</h4>
+    <p>The canvas is empty. No audio is playing. The user is prompted to click to add their first point.</p>
+    <p><strong>Topology:</strong> \(K = \emptyset\), all invariants undefined.</p>
+    <p><strong>Sound:</strong> Silence.</p>
+  </div>
+</div>
+
+<div class="storyboard-frame">
+  <div class="frame-visual">
+    <span class="frame-number">2</span>
+    <p style="color: var(--fg-dim); font-size: 0.85em;">First point</p>
+    <svg viewBox="0 0 180 120" width="180" height="120">
+      <rect width="180" height="120" fill="#050508" rx="3"/>
+      <circle cx="90" cy="60" r="5" fill="#e0af68"/>
+    </svg>
+  </div>
+  <div class="frame-desc">
+    <h4>Single Point</h4>
+    <p>The user clicks once. A single vertex appears.</p>
+    <p><strong>Topology:</strong> \(\mathbf{f} = (1)\), \(\beta_0 = 1\), \(\chi = 1\).</p>
+    <p><strong>Sound:</strong> A single sawtooth oscillator at the base frequency (e.g., 220 Hz). A pure, solitary drone. The reverb is short (positive curvature). No modulation, no sub-oscillators.</p>
+  </div>
+</div>
+
+<div class="storyboard-frame">
+  <div class="frame-visual">
+    <span class="frame-number">3</span>
+    <p style="color: var(--fg-dim); font-size: 0.85em;">Two distant points</p>
+    <svg viewBox="0 0 180 120" width="180" height="120">
+      <rect width="180" height="120" fill="#050508" rx="3"/>
+      <circle cx="50" cy="60" r="5" fill="#e0af68"/>
+      <circle cx="130" cy="60" r="5" fill="#e0af68"/>
+    </svg>
+  </div>
+  <div class="frame-desc">
+    <h4>Two Components</h4>
+    <p>A second point is placed far from the first (beyond the radius).</p>
+    <p><strong>Topology:</strong> \(\mathbf{f} = (2)\), \(\beta_0 = 2\), \(\chi = 2\).</p>
+    <p><strong>Sound:</strong> Two oscillator voices at slightly different frequencies. A two-note chord. The second voice enters with a brief attack envelope. The reverb becomes even shorter (\(\chi = 2\)). The listener hears two distinct tones&mdash;two components, two voices.</p>
+  </div>
+</div>
+
+<div class="storyboard-frame">
+  <div class="frame-visual">
+    <span class="frame-number">4</span>
+    <p style="color: var(--fg-dim); font-size: 0.85em;">Points connected</p>
+    <svg viewBox="0 0 180 120" width="180" height="120">
+      <rect width="180" height="120" fill="#050508" rx="3"/>
+      <line x1="60" y1="60" x2="120" y2="60" stroke="rgba(122,162,247,0.6)" stroke-width="1.5"/>
+      <circle cx="60" cy="60" r="5" fill="#e0af68"/>
+      <circle cx="120" cy="60" r="5" fill="#e0af68"/>
+    </svg>
+  </div>
+  <div class="frame-desc">
+    <h4>First Edge (Component Merge)</h4>
+    <p>The user drags one point closer, or increases the radius, until the two points connect.</p>
+    <p><strong>Topology:</strong> \(\mathbf{f} = (2, 1)\), \(\beta_0 = 1\), \(\chi = 1\).</p>
+    <p><strong>Sound:</strong> The two voices merge into one. The chord collapses to unison. The harmonic ratio \(f_1/f_0 = 1/2\) tunes the second oscillator to a sub-octave. The reverb lengthens. The listener hears unification&mdash;two becoming one.</p>
+  </div>
+</div>
+
+<div class="storyboard-frame">
+  <div class="frame-visual">
+    <span class="frame-number">5</span>
+    <p style="color: var(--fg-dim); font-size: 0.85em;">Triangle boundary</p>
+    <svg viewBox="0 0 180 120" width="180" height="120">
+      <rect width="180" height="120" fill="#050508" rx="3"/>
+      <line x1="90" y1="25" x2="40" y2="95" stroke="rgba(122,162,247,0.6)" stroke-width="1.5"/>
+      <line x1="90" y1="25" x2="140" y2="95" stroke="rgba(122,162,247,0.6)" stroke-width="1.5"/>
+      <line x1="40" y1="95" x2="140" y2="95" stroke="rgba(122,162,247,0.6)" stroke-width="1.5"/>
+      <circle cx="90" cy="25" r="5" fill="#e0af68"/>
+      <circle cx="40" cy="95" r="5" fill="#e0af68"/>
+      <circle cx="140" cy="95" r="5" fill="#e0af68"/>
+    </svg>
+  </div>
+  <div class="frame-desc">
+    <h4>A Loop Forms!</h4>
+    <p>Three points form a triangle boundary (edges only, no fill).</p>
+    <p><strong>Topology:</strong> \(\mathbf{f} = (3, 3)\), \(\beta_0 = 1\), \(\beta_1 = 1\), \(\chi = 0\).</p>
+    <p><strong>Sound:</strong> A dramatic moment. An LFO modulator activates at 0.1 Hz, adding a gentle vibrato to the drone. The reverb transitions to medium length (\(\chi = 0\), flat/toroidal). The harmonic ratio \(3/3 = 1\) is unison. The listener hears a new dimension of motion&mdash;the loop has introduced <em>periodicity</em> into the sound.</p>
+  </div>
+</div>
+
+<div class="storyboard-frame">
+  <div class="frame-visual">
+    <span class="frame-number">6</span>
+    <p style="color: var(--fg-dim); font-size: 0.85em;">Filled triangle</p>
+    <svg viewBox="0 0 180 120" width="180" height="120">
+      <rect width="180" height="120" fill="#050508" rx="3"/>
+      <polygon points="90,25 40,95 140,95" fill="rgba(122,162,247,0.1)" stroke="rgba(122,162,247,0.6)" stroke-width="1.5"/>
+      <circle cx="90" cy="25" r="5" fill="#e0af68"/>
+      <circle cx="40" cy="95" r="5" fill="#e0af68"/>
+      <circle cx="140" cy="95" r="5" fill="#e0af68"/>
+    </svg>
+  </div>
+  <div class="frame-desc">
+    <h4>Loop Filled (Loop Dies)</h4>
+    <p>Increasing the radius causes the triangle to fill (a 2-simplex appears).</p>
+    <p><strong>Topology:</strong> \(\mathbf{f} = (3, 3, 1)\), \(\beta_0 = 1\), \(\beta_1 = 0\), \(\chi = 1\).</p>
+    <p><strong>Sound:</strong> The LFO deactivates. The vibrato stops. The drone returns to a static pitch. The reverb shortens again. Harmonics shift: ratio \(3/3 = 1\), then \(1/3\). The listener hears the loop "die"&mdash;the periodic modulation vanishes as the hole is filled in.</p>
+  </div>
+</div>
+
+<div class="storyboard-frame">
+  <div class="frame-visual">
+    <span class="frame-number">7</span>
+    <p style="color: var(--fg-dim); font-size: 0.85em;">Hollow tetrahedron</p>
+    <svg viewBox="0 0 180 120" width="180" height="120">
+      <rect width="180" height="120" fill="#050508" rx="3"/>
+      <polygon points="90,15 35,90 90,110 145,90" fill="rgba(122,162,247,0.06)" stroke="rgba(122,162,247,0.4)" stroke-width="1"/>
+      <line x1="90" y1="15" x2="90" y2="110" stroke="rgba(187,154,247,0.3)" stroke-width="1"/>
+      <line x1="35" y1="90" x2="145" y2="90" stroke="rgba(187,154,247,0.3)" stroke-width="1"/>
+      <circle cx="90" cy="15" r="4" fill="#e0af68"/>
+      <circle cx="35" cy="90" r="4" fill="#e0af68"/>
+      <circle cx="145" cy="90" r="4" fill="#e0af68"/>
+      <circle cx="90" cy="110" r="4" fill="#e0af68"/>
+    </svg>
+  </div>
+  <div class="frame-desc">
+    <h4>A Void Appears</h4>
+    <p>Four points form the boundary of a tetrahedron (four triangular faces, no solid interior).</p>
+    <p><strong>Topology:</strong> \(\mathbf{f} = (4, 6, 4)\), \(\beta_0 = 1\), \(\beta_1 = 0\), \(\beta_2 = 1\), \(\chi = 2\).</p>
+    <p><strong>Sound:</strong> A sub-oscillator activates at \(f_0/2\), adding warmth and body. The harmonic ratios are \(6/4 = 3/2\) (perfect fifth!) and \(4/6 = 2/3\). The reverb is very short (\(\chi = 2\), highly curved sphere). The listener hears a richer, deeper sound&mdash;the void has become a resonant cavity.</p>
+  </div>
+</div>
+
+<!-- ================================================================ -->
+<h2>S.6 Interaction Scenarios</h2>
+
+<div class="scenario">
+  <h4>Scenario A: "Growing a Circle"</h4>
+  <p>The user places 8 points in a circle pattern, one at a time.</p>
+  <ol>
+    <li>Points 1-3: Components merge one by one. Chord narrows to unison.</li>
+    <li>Points 4-6: Edges form a path. Still no loop. Static drone.</li>
+    <li>Point 7: The path closes into a cycle! \(\beta_1 = 1\). LFO activates. Vibrato begins.</li>
+    <li>Point 8: Strengthens the cycle. Perhaps additional loops form briefly.</li>
+    <li>Increasing radius: Triangles fill in the circle. The loop dies. LFO deactivates. If radius is large enough, a void may form briefly.</li>
+  </ol>
+</div>
+
+<div class="scenario">
+  <h4>Scenario B: "Pulling Apart"</h4>
+  <p>Starting from a dense cluster (all connected), the user drags points apart.</p>
+  <ol>
+    <li>Initial: Dense complex with many simplices. Rich harmonic content, sub-oscillators active.</li>
+    <li>As points separate: Higher simplices disappear first (tetrahedra, then triangles). Voids may appear briefly. The sound becomes "emptier" as complexity decreases.</li>
+    <li>Further: Edges break. New components form. The drone splits into multiple voices&mdash;a chord emerging from unison.</li>
+    <li>Final: All points isolated. \(\beta_0 = n\) voices, each at a slightly different frequency. A shimmering, dispersed soundscape. Maximum polyphony.</li>
+  </ol>
+</div>
+
+<div class="scenario">
+  <h4>Scenario C: "Radius Sweep"</h4>
+  <p>Points are fixed; the user sweeps the radius slider from 0 to max.</p>
+  <ol>
+    <li>\(\varepsilon = 0\): All isolated. \(n\) voices. No modulation. No reverb.</li>
+    <li>\(\varepsilon\) increases: Components merge. Voices converge. Modulation appears as loops form.</li>
+    <li>Middle range: Maximum topological complexity. Loops and possibly voids. Rich sound with modulation, sub-oscillators, complex delay echoes.</li>
+    <li>\(\varepsilon\) large: Everything connected and filled. \(\beta_0 = 1\), \(\beta_1 = 0\). Single static drone. Minimal sound.</li>
+  </ol>
+  <p>This sweep is the audible equivalent of the persistence filtration&mdash;the user literally <em>hears</em> the persistent homology.</p>
+</div>
+
+<!-- ================================================================ -->
+<h2>S.7 Future Directions</h2>
+
+<h3>Higher-Dimensional Complexes</h3>
+<p>
+The current implementation supports up to 3-simplices (tetrahedra). Extending to
+higher dimensions would capture \(\beta_3, \beta_4, \ldots\), which could map to
+additional audio channels (e.g., 3D spatialization from \(\beta_3\)).
+</p>
+
+<h3>Sheaves and Local-to-Global</h3>
+<p>
+Sheaves on simplicial complexes encode local data that glues together globally.
+A <strong>cellular sheaf</strong> assigns a vector space \(\mathcal{F}(\sigma)\) to each
+simplex and a linear restriction map \(\mathcal{F}(\sigma) \to \mathcal{F}(\tau)\)
+for each face relation \(\tau \leq \sigma\). Sheaf cohomology detects obstructions
+to global consistency.
+</p>
+<p>
+For sonification: different "local instruments" could be assigned to different
+regions of the complex, with sheaf cohomology determining whether they harmonize
+globally. Non-trivial cohomology = dissonance.
+</p>
+
+<h3>Spectral Sequences</h3>
+<p>
+The Mayer-Vietoris spectral sequence and the Leray-Serre spectral sequence
+provide refined algebraic invariants that converge to the homology. Each page
+of the spectral sequence is a differential graded module. These could drive
+a multi-layered synthesis architecture where the "pages" correspond to
+successive levels of harmonic refinement.
+</p>
+
+<h3>Mapper and Reeb Graphs</h3>
+<p>
+The Mapper algorithm (a discrete approximation to the Reeb graph) produces a
+graph summary of high-dimensional data. The graph could drive a network of
+delay lines (waveguide mesh synthesis), with the Mapper graph topology
+determining the resonant modes of the network.
+</p>
+
+<h3>Real-Time GPU Acceleration</h3>
+<p>
+For larger point clouds, the VR complex construction and boundary matrix
+reduction could be accelerated using WebGPU compute shaders, allowing real-time
+sonification of point clouds with hundreds of points.
+</p>
+
+<h3>Collaborative Topology</h3>
+<p>
+Multiple users could contribute points to a shared point cloud over WebSocket,
+each hearing the same topological sonification but from different "listening
+positions" in the complex (different vertices chosen as the observation point,
+affecting the local sound via star and link computations).
+</p>
+
+<hr>
+
+<p style="text-align: center; margin-top: 2em;">
+  <a href="04-sonification-mapping.html">&larr; Chapter 4: The Sonification Mapping</a>
+  &emsp;|&emsp;
+  <a href="index.html">Return to Home</a>
+</p>
+
+<div class="footer">
+  <p>topo-sonify &middot; Design Storyboard</p>
+  <p style="margin-top: 0.5em;">Topology-first sonification. From shape to sound.</p>
+</div>
+
+</body>
+</html>

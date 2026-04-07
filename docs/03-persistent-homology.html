@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chapter 3: Persistent Homology and Filtrations &mdash; Topology-First Sonification</title>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --bg-code: #111118;
+    --fg: #c8c8d0;
+    --fg-dim: #6a6a7a;
+    --fg-bright: #e8e8f0;
+    --accent: #7aa2f7;
+    --accent2: #9ece6a;
+    --accent3: #bb9af7;
+    --accent4: #f7768e;
+    --accent5: #e0af68;
+    --border: #1a1a2e;
+    --link: #7aa2f7;
+    --link-hover: #9dc0ff;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: 'Berkeley Mono', 'JetBrains Mono', 'Fira Code', 'SF Mono', 'Cascadia Code', monospace;
+    font-size: 15px;
+    line-height: 1.75;
+    max-width: 52em;
+    margin: 0 auto;
+    padding: 3em 2em 6em;
+  }
+  h1, h2, h3, h4 { color: var(--fg-bright); font-weight: 600; margin-top: 2.5em; margin-bottom: 0.75em; }
+  h1 { font-size: 1.8em; border-bottom: 2px solid var(--accent); padding-bottom: 0.4em; margin-top: 0; }
+  h2 { font-size: 1.4em; border-bottom: 1px solid var(--border); padding-bottom: 0.3em; }
+  h3 { font-size: 1.15em; color: var(--accent3); }
+  h4 { font-size: 1.0em; color: var(--accent5); }
+  p { margin-bottom: 1em; }
+  a { color: var(--link); text-decoration: none; border-bottom: 1px solid transparent; transition: border-color 0.2s; }
+  a:hover { color: var(--link-hover); border-bottom-color: var(--link-hover); }
+  ul, ol { margin-bottom: 1em; padding-left: 1.5em; }
+  li { margin-bottom: 0.35em; }
+  blockquote { border-left: 3px solid var(--accent3); padding: 0.75em 1.25em; margin: 1.5em 0; background: rgba(187,154,247,0.05); font-style: italic; }
+  pre { background: var(--bg-code); border: 1px solid var(--border); border-radius: 4px; padding: 1.25em; overflow-x: auto; margin: 1.5em 0; font-size: 0.9em; line-height: 1.6; }
+  code { background: var(--bg-code); padding: 0.15em 0.4em; border-radius: 3px; font-size: 0.92em; }
+  pre code { background: none; padding: 0; }
+  .keyword { color: var(--accent3); }
+  .type { color: var(--accent); }
+  .string { color: var(--accent2); }
+  .comment { color: var(--fg-dim); font-style: italic; }
+  .number { color: var(--accent5); }
+  .function { color: var(--accent); }
+  .nav { display: flex; justify-content: space-between; align-items: center; padding: 1em 0; border-bottom: 1px solid var(--border); margin-bottom: 2em; flex-wrap: wrap; gap: 0.5em; }
+  .nav a { color: var(--fg-dim); font-size: 0.85em; padding: 0.3em 0.6em; border: 1px solid var(--border); border-radius: 3px; transition: all 0.2s; }
+  .nav a:hover { color: var(--accent); border-color: var(--accent); }
+  .nav a.active { color: var(--accent); border-color: var(--accent); }
+  .definition { border-left: 3px solid var(--accent); padding: 1em 1.25em; margin: 1.5em 0; background: rgba(122,162,247,0.04); }
+  .definition .label { color: var(--accent); font-weight: 600; margin-bottom: 0.5em; }
+  .theorem { border-left: 3px solid var(--accent2); padding: 1em 1.25em; margin: 1.5em 0; background: rgba(158,206,106,0.04); }
+  .theorem .label { color: var(--accent2); font-weight: 600; margin-bottom: 0.5em; }
+  .proof { border-left: 3px solid var(--fg-dim); padding: 1em 1.25em; margin: 1.5em 0; background: rgba(106,106,122,0.04); }
+  .proof .label { color: var(--fg-dim); font-weight: 600; margin-bottom: 0.5em; }
+  .remark { border-left: 3px solid var(--accent5); padding: 1em 1.25em; margin: 1.5em 0; background: rgba(224,175,104,0.04); }
+  .remark .label { color: var(--accent5); font-weight: 600; margin-bottom: 0.5em; }
+  .example { border-left: 3px solid var(--accent4); padding: 1em 1.25em; margin: 1.5em 0; background: rgba(247,118,142,0.04); }
+  .example .label { color: var(--accent4); font-weight: 600; margin-bottom: 0.5em; }
+  .exercise { border-left: 3px solid var(--accent2); padding: 1em 1.25em; margin: 1em 0; background: rgba(158,206,106,0.03); }
+  .exercise .label { color: var(--accent2); font-weight: 600; margin-bottom: 0.5em; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 3em 0; }
+  .footer { margin-top: 4em; padding-top: 1.5em; border-top: 1px solid var(--border); color: var(--fg-dim); font-size: 0.85em; text-align: center; }
+  canvas { display: block; margin: 1.5em auto; border: 1px solid var(--border); border-radius: 4px; background: #050508; }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a href="index.html">Home</a>
+  <a href="01-simplicial-complexes.html">Ch.1 Simplices</a>
+  <a href="02-homology.html">Ch.2 Homology</a>
+  <a class="active" href="03-persistent-homology.html">Ch.3 Persistence</a>
+  <a href="04-sonification-mapping.html">Ch.4 Sonification</a>
+  <a href="05-storyboard.html">Storyboard</a>
+</nav>
+
+<h1>Chapter 3: Persistent Homology and Filtrations</h1>
+<p style="color: var(--fg-dim);">Multi-scale topology and the persistence diagram</p>
+
+<!-- ================================================================ -->
+<h2>3.1 The Scale Problem</h2>
+
+<p>
+Chapter 1 showed how to build a Vietoris-Rips complex \(\mathrm{VR}(P, \varepsilon)\) from
+a point cloud at a fixed radius \(\varepsilon\). But which \(\varepsilon\) should we choose?
+</p>
+
+<ul>
+  <li>If \(\varepsilon\) is too small, every point is isolated: \(\beta_0 = n\), \(\beta_k = 0\) for \(k \geq 1\).</li>
+  <li>If \(\varepsilon\) is too large, everything is connected and filled: \(\beta_0 = 1\), \(\beta_k = 0\) for \(k \geq 1\).</li>
+  <li>At intermediate scales, the complex reveals the "true" topology of the underlying space.</li>
+</ul>
+
+<p>
+Persistent homology solves this problem by considering <em>all scales simultaneously</em>.
+Instead of picking a single \(\varepsilon\), we sweep \(\varepsilon\) from 0 to \(\infty\) and track
+how topological features (components, loops, voids) appear and disappear. Features that
+persist across a wide range of scales are "real" (signal); features that appear and
+disappear quickly are "noise."
+</p>
+
+<p>
+For sonification, persistence provides a temporal dimension: the filtration parameter
+becomes time, and the births and deaths of features become musical events. The persistence
+diagram is literally a score.
+</p>
+
+<!-- ================================================================ -->
+<h2>3.2 Filtrations</h2>
+
+<div class="definition">
+  <p class="label">Definition 3.1 (Filtration)</p>
+  <p>
+    A <strong>filtration</strong> of a simplicial complex \(K\) is a nested sequence of subcomplexes:
+    \[
+      \emptyset = K_0 \subseteq K_1 \subseteq K_2 \subseteq \cdots \subseteq K_n = K,
+    \]
+    where each \(K_i\) is a simplicial complex and the inclusions are simplicial maps.
+    Equivalently, a filtration assigns to each simplex \(\sigma \in K\) a <strong>filtration value</strong>
+    \(f(\sigma) \in \mathbb{R}\) such that \(f(\tau) \leq f(\sigma)\) whenever \(\tau \leq \sigma\)
+    (faces enter no later than their cofaces).
+  </p>
+</div>
+
+<div class="definition">
+  <p class="label">Definition 3.2 (Vietoris-Rips filtration)</p>
+  <p>
+    The <strong>Vietoris-Rips filtration</strong> of a point cloud \(P\) is the filtration where
+    \(K_\varepsilon = \mathrm{VR}(P, \varepsilon)\). Each simplex \(\sigma = \{p_0, \ldots, p_k\}\) enters
+    the filtration at the value:
+    \[
+      f(\sigma) = \max_{0 \leq i < j \leq k} d(p_i, p_j),
+    \]
+    the diameter of the simplex. In particular:
+  </p>
+  <ul>
+    <li>Each vertex enters at \(f = 0\).</li>
+    <li>An edge \([p_i, p_j]\) enters at \(f = d(p_i, p_j)\).</li>
+    <li>A triangle \([p_i, p_j, p_k]\) enters at \(f = \max(d(p_i,p_j), d(p_i,p_k), d(p_j,p_k))\).</li>
+  </ul>
+</div>
+
+<!-- ================================================================ -->
+<h2>3.3 Persistent Homology</h2>
+
+<p>
+As we increase \(\varepsilon\) through the filtration, the homology groups
+\(H_k(K_\varepsilon)\) change. New features are <em>born</em> (a new component appears,
+a loop forms, a void closes) and old features <em>die</em> (components merge, loops are
+filled in, voids are capped off).
+</p>
+
+<div class="definition">
+  <p class="label">Definition 3.3 (Persistent homology group)</p>
+  <p>
+    For \(i \leq j\), the <strong>\((i,j)\)-persistent \(k\)-th homology group</strong> is:
+    \[
+      H_k^{i,j} = Z_k(K_i) / (B_k(K_j) \cap Z_k(K_i)),
+    \]
+    which captures the \(k\)-cycles born at or before step \(i\) that are still
+    alive (not yet boundaries) at step \(j\). The inclusion \(K_i \hookrightarrow K_j\)
+    induces a map \(H_k(K_i) \to H_k(K_j)\), and \(H_k^{i,j}\) is its image.
+  </p>
+</div>
+
+<div class="definition">
+  <p class="label">Definition 3.4 (Birth and death)</p>
+  <p>
+    A homology class \(\gamma \in H_k(K_i)\) is <strong>born</strong> at step \(i\) if
+    \(\gamma \notin H_k^{i-1,i}\)&mdash;it is not in the image of the map from \(K_{i-1}\).
+    The class <strong>dies</strong> at step \(j\) if the image of \(\gamma\) becomes zero in
+    \(H_k^{i,j}\) but was nonzero in \(H_k^{i,j-1}\).
+  </p>
+</div>
+
+<div class="definition">
+  <p class="label">Definition 3.5 (Persistence pair)</p>
+  <p>
+    A <strong>persistence pair</strong> is a pair \((b, d)\) where \(b\) is the birth time and
+    \(d\) is the death time of a homology class. The <strong>persistence</strong> of the pair is:
+    \[
+      \mathrm{pers}(b, d) = d - b.
+    \]
+    Long persistence indicates a "significant" topological feature; short persistence
+    indicates noise.
+  </p>
+</div>
+
+<div class="definition">
+  <p class="label">Definition 3.6 (Essential class)</p>
+  <p>
+    If a class is born but never dies (it persists to \(\varepsilon = \infty\)), it is called
+    an <strong>essential class</strong>. We write its death as \(d = \infty\) and its persistence
+    as \(\infty\). Essential classes correspond to the "true" topology of the
+    underlying space.
+  </p>
+</div>
+
+<h3>Code Stitch: PersistencePair</h3>
+
+<pre><code><span class="comment">/// A persistence pair (birth, death) representing a topological feature</span>
+<span class="comment">/// that appears at `birth` and disappears at `death`.</span>
+<span class="comment">/// Implements Definitions 3.5 and 3.6.</span>
+<span class="keyword">pub struct</span> <span class="type">PersistencePair</span> {
+    <span class="keyword">pub</span> birth: <span class="type">f64</span>,       <span class="comment">// filtration value at birth (b)</span>
+    <span class="keyword">pub</span> death: <span class="type">f64</span>,       <span class="comment">// filtration value at death (d), or f64::INFINITY</span>
+    <span class="keyword">pub</span> dimension: <span class="type">usize</span>, <span class="comment">// homological dimension k</span>
+}
+
+<span class="keyword">impl</span> <span class="type">PersistencePair</span> {
+    <span class="comment">/// The lifetime of the feature: pers(b,d) = d - b.</span>
+    <span class="keyword">pub fn</span> <span class="function">persistence</span>(&amp;<span class="keyword">self</span>) -> <span class="type">f64</span> {
+        <span class="keyword">if</span> <span class="keyword">self</span>.death.is_infinite() { <span class="type">f64</span>::INFINITY }
+        <span class="keyword">else</span> { <span class="keyword">self</span>.death - <span class="keyword">self</span>.birth }
+    }
+
+    <span class="comment">/// Is this an essential class (Definition 3.6)?</span>
+    <span class="keyword">pub fn</span> <span class="function">is_essential</span>(&amp;<span class="keyword">self</span>) -> <span class="type">bool</span> {
+        <span class="keyword">self</span>.death.is_infinite()
+    }
+}
+</code></pre>
+
+<!-- ================================================================ -->
+<h2>3.4 The Persistence Diagram</h2>
+
+<div class="definition">
+  <p class="label">Definition 3.7 (Persistence diagram)</p>
+  <p>
+    The <strong>persistence diagram</strong> \(\mathrm{Dgm}(K)\) is the multiset of all persistence
+    pairs \(\{(b_i, d_i)\}\) in the upper half-plane \(\{(b,d) \mid b \leq d\}\).
+    Points near the diagonal \(d = b\) represent short-lived (noisy) features;
+    points far from the diagonal represent persistent (significant) features.
+    Essential classes are represented as points at \((b, \infty)\).
+  </p>
+</div>
+
+<canvas id="persistenceCanvas" width="500" height="500"></canvas>
+<p style="color: var(--fg-dim); font-size: 0.85em; text-align: center;">
+  A persistence diagram. Orange dots are \(H_0\) pairs (components merging).<br>
+  Blue dots are \(H_1\) pairs (loops forming and filling). Star = essential class.
+</p>
+
+<script>
+(function() {
+  const canvas = document.getElementById('persistenceCanvas');
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height;
+  const margin = 50;
+  const pw = w - 2*margin, ph = h - 2*margin;
+
+  // Example persistence pairs: (birth, death, dim)
+  const pairs = [
+    [0, 0.3, 0], [0, 0.5, 0], [0, 0.8, 0], [0, Infinity, 0],
+    [0.4, 0.7, 1], [0.5, 1.2, 1], [0.6, 0.65, 1],
+    [0.9, 1.1, 2],
+  ];
+  const maxVal = 1.5;
+
+  function toX(v) { return margin + (v / maxVal) * pw; }
+  function toY(v) { return h - margin - (Math.min(v, maxVal) / maxVal) * ph; }
+
+  ctx.fillStyle = '#050508';
+  ctx.fillRect(0, 0, w, h);
+
+  // Diagonal
+  ctx.beginPath();
+  ctx.moveTo(margin, h - margin);
+  ctx.lineTo(w - margin, margin);
+  ctx.strokeStyle = 'rgba(200,200,200,0.15)';
+  ctx.setLineDash([4, 4]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Axes
+  ctx.beginPath();
+  ctx.moveTo(margin, margin);
+  ctx.lineTo(margin, h - margin);
+  ctx.lineTo(w - margin, h - margin);
+  ctx.strokeStyle = 'rgba(200,200,200,0.3)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // Labels
+  ctx.fillStyle = '#6a6a7a';
+  ctx.font = '12px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('birth', w/2, h - 15);
+  ctx.save();
+  ctx.translate(15, h/2);
+  ctx.rotate(-Math.PI/2);
+  ctx.fillText('death', 0, 0);
+  ctx.restore();
+
+  // Tick marks
+  for (let v = 0; v <= maxVal; v += 0.5) {
+    const x = toX(v), y = toY(v);
+    ctx.fillStyle = '#6a6a7a';
+    ctx.textAlign = 'center';
+    ctx.fillText(v.toFixed(1), x, h - margin + 18);
+    ctx.textAlign = 'right';
+    ctx.fillText(v.toFixed(1), margin - 8, y + 4);
+  }
+
+  // Plot pairs
+  for (const [b, d, dim] of pairs) {
+    if (d === Infinity) {
+      // Essential: draw star
+      const x = toX(b), y = margin + 10;
+      ctx.beginPath();
+      for (let i = 0; i < 5; i++) {
+        const angle = -Math.PI/2 + i * 2 * Math.PI / 5;
+        const r = i === 0 ? 8 : 8;
+        const px = x + Math.cos(angle) * r;
+        const py = y + Math.sin(angle) * r;
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+        const innerAngle = angle + Math.PI / 5;
+        const ipx = x + Math.cos(innerAngle) * 4;
+        const ipy = y + Math.sin(innerAngle) * 4;
+        ctx.lineTo(ipx, ipy);
+      }
+      ctx.closePath();
+      ctx.fillStyle = dim === 0 ? '#e0af68' : dim === 1 ? '#7aa2f7' : '#bb9af7';
+      ctx.fill();
+    } else {
+      const x = toX(b), y = toY(d);
+      ctx.beginPath();
+      ctx.arc(x, y, 5, 0, Math.PI * 2);
+      ctx.fillStyle = dim === 0 ? '#e0af68' : dim === 1 ? '#7aa2f7' : '#bb9af7';
+      ctx.fill();
+      // Vertical line to diagonal (persistence)
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(toX((b+d)/2), toY((b+d)/2));
+      ctx.strokeStyle = dim === 0 ? 'rgba(224,175,104,0.2)' : dim === 1 ? 'rgba(122,162,247,0.2)' : 'rgba(187,154,247,0.2)';
+      ctx.stroke();
+    }
+  }
+})();
+</script>
+
+<!-- ================================================================ -->
+<h2>3.5 The Stability Theorem</h2>
+
+<div class="definition">
+  <p class="label">Definition 3.8 (Bottleneck distance)</p>
+  <p>
+    The <strong>bottleneck distance</strong> between two persistence diagrams \(\mathrm{Dgm}_1\)
+    and \(\mathrm{Dgm}_2\) is:
+    \[
+      d_B(\mathrm{Dgm}_1, \mathrm{Dgm}_2) = \inf_\gamma \sup_{x \in \mathrm{Dgm}_1} \|x - \gamma(x)\|_\infty,
+    \]
+    where \(\gamma\) ranges over all bijections between the two diagrams (with points
+    on the diagonal included to allow unmatched points).
+  </p>
+</div>
+
+<div class="definition">
+  <p class="label">Definition 3.9 (Wasserstein distance)</p>
+  <p>
+    The <strong>\(p\)-Wasserstein distance</strong> between persistence diagrams is:
+    \[
+      W_p(\mathrm{Dgm}_1, \mathrm{Dgm}_2) = \left(\inf_\gamma \sum_{x \in \mathrm{Dgm}_1} \|x - \gamma(x)\|_\infty^p\right)^{1/p}.
+    \]
+    The bottleneck distance is the limit \(W_\infty\).
+  </p>
+</div>
+
+<div class="theorem">
+  <p class="label">Theorem 3.10 (Stability theorem, Cohen-Steiner, Edelsbrunner, Harer 2007)</p>
+  <p>
+    Let \(f, g : K \to \mathbb{R}\) be two filtration functions on the same simplicial
+    complex \(K\). Then:
+    \[
+      d_B(\mathrm{Dgm}(f), \mathrm{Dgm}(g)) \leq \|f - g\|_\infty.
+    \]
+    In words: the persistence diagram is <strong>1-Lipschitz</strong> with respect to the
+    bottleneck distance. Small perturbations to the input produce small perturbations
+    to the output.
+  </p>
+</div>
+
+<div class="proof">
+  <p class="label">Proof sketch</p>
+  <p>
+    The key idea is the <strong>box lemma</strong>: if \(\|f - g\|_\infty \leq \delta\), then
+    for every persistence pair \((b, d)\) in \(\mathrm{Dgm}(f)\), there exists a pair
+    \((b', d')\) in \(\mathrm{Dgm}(g)\) with \(|b - b'| \leq \delta\) and \(|d - d'| \leq \delta\),
+    or the pair has persistence \(d - b \leq 2\delta\) (and can be matched to the
+    diagonal). This is proved by tracking how the inclusion maps between sublevel sets
+    change under perturbation of the filtration function. The detailed proof uses
+    the algebraic stability of the persistence module structure. \(\square\)
+  </p>
+</div>
+
+<div class="remark">
+  <p class="label">Remark 3.11 (Importance for sonification)</p>
+  <p>
+    The stability theorem guarantees that our sonification is <em>continuous</em>: when the
+    user moves a point slightly, the persistence diagram changes slightly, and therefore
+    the sound changes smoothly. Without stability, small mouse movements could cause
+    dramatic jumps in the audio&mdash;a poor user experience. Stability is what makes
+    persistent homology suitable for real-time interactive sonification.
+  </p>
+</div>
+
+<!-- ================================================================ -->
+<h2>3.6 Persistence Landscapes</h2>
+
+<div class="definition">
+  <p class="label">Definition 3.12 (Persistence landscape)</p>
+  <p>
+    Given a persistence diagram \(\mathrm{Dgm}\) in dimension \(k\), the <strong>\(j\)-th
+    persistence landscape function</strong> \(\lambda_j : \mathbb{R} \to \mathbb{R}\) is
+    defined as follows. For each pair \((b_i, d_i)\), define the "tent function":
+    \[
+      \Lambda_i(t) = \max\left(0, \min\left(t - b_i, \; d_i - t\right)\right).
+    \]
+    This is a triangle of height \((d_i - b_i)/2\) centered at the midpoint \((b_i + d_i)/2\).
+    Then \(\lambda_j(t)\) is the \(j\)-th largest value among all \(\Lambda_i(t)\) at parameter \(t\).
+  </p>
+</div>
+
+<p>
+Landscapes convert the multiset of persistence pairs into a sequence of functions,
+which are easier to average, compute norms of, and use in statistical tests. They
+are Lipschitz-stable (like persistence diagrams) and embed naturally into Banach spaces.
+</p>
+
+<h3>Code Stitch: Landscape Computation</h3>
+
+<pre><code><span class="comment">/// Persistence landscape value at a given point.</span>
+<span class="comment">/// lambda_k(t) for the k-th landscape function at parameter t.</span>
+<span class="comment">///</span>
+<span class="comment">/// For each pair (b_i, d_i), the tent function Lambda_i(t) is:</span>
+<span class="comment">///   Lambda_i(t) = max(0, min(t - b_i, d_i - t))</span>
+<span class="comment">/// Then lambda_k(t) = k-th largest Lambda_i(t).</span>
+<span class="keyword">pub fn</span> <span class="function">landscape</span>(&amp;<span class="keyword">self</span>, dim: <span class="type">usize</span>, k: <span class="type">usize</span>, t: <span class="type">f64</span>) -> <span class="type">f64</span> {
+    <span class="keyword">let mut</span> values: <span class="type">Vec</span>&lt;<span class="type">f64</span>&gt; = <span class="keyword">self</span>
+        .pairs_in_dim(dim)
+        .iter()
+        .filter(|p| !p.is_essential())
+        .map(|p| {
+            <span class="keyword">let</span> mid = p.midpoint();
+            <span class="keyword">let</span> half_life = p.persistence() / <span class="number">2.0</span>;
+            <span class="comment">// Tent function: Lambda_i(t)</span>
+            <span class="keyword">if</span> (t - mid).abs() < half_life {
+                half_life - (t - mid).abs()
+            } <span class="keyword">else</span> {
+                <span class="number">0.0</span>
+            }
+        })
+        .collect();
+    <span class="comment">// Sort descending to get the k-th largest</span>
+    values.sort_by(|a, b| b.partial_cmp(a).unwrap());
+    values.get(k).copied().unwrap_or(<span class="number">0.0</span>)
+}
+</code></pre>
+
+<!-- ================================================================ -->
+<h2>3.7 Persistence Entropy</h2>
+
+<div class="definition">
+  <p class="label">Definition 3.13 (Persistence entropy)</p>
+  <p>
+    The <strong>persistence entropy</strong> of a persistence diagram is the Shannon entropy
+    of the normalized persistence values:
+    \[
+      H = -\sum_{i} p_i \log p_i, \quad \text{where} \quad p_i = \frac{\mathrm{pers}(b_i, d_i)}{\sum_j \mathrm{pers}(b_j, d_j)}.
+    \]
+    The sum ranges over all finite persistence pairs. High entropy indicates many
+    features of similar persistence (uniform distribution); low entropy indicates
+    a few dominant features.
+  </p>
+</div>
+
+<div class="remark">
+  <p class="label">Remark 3.14</p>
+  <p>
+    Persistence entropy provides a single scalar summary of the complexity of the
+    persistence diagram. For sonification, it can modulate global parameters like
+    overall brightness, density, or chaos of the sound.
+  </p>
+</div>
+
+<h3>Code Stitch: Persistence Entropy</h3>
+
+<pre><code><span class="comment">/// Persistence entropy: H = -Sum p_i log(p_i)</span>
+<span class="comment">/// where p_i = pers_i / total_pers (Definition 3.13).</span>
+<span class="keyword">pub fn</span> <span class="function">persistence_entropy</span>(&amp;<span class="keyword">self</span>) -> <span class="type">f64</span> {
+    <span class="keyword">let</span> total = <span class="keyword">self</span>.total_persistence();
+    <span class="keyword">if</span> total == <span class="number">0.0</span> { <span class="keyword">return</span> <span class="number">0.0</span>; }
+    <span class="keyword">self</span>.pairs.iter()
+        .filter(|p| !p.is_essential())
+        .map(|p| {
+            <span class="keyword">let</span> prob = p.persistence() / total;
+            <span class="keyword">if</span> prob > <span class="number">0.0</span> { -prob * prob.ln() }
+            <span class="keyword">else</span> { <span class="number">0.0</span> }
+        })
+        .sum()
+}
+</code></pre>
+
+<!-- ================================================================ -->
+<h2>3.8 The Column Reduction Algorithm</h2>
+
+<p>
+The standard algorithm for computing persistence is a variant of Gaussian elimination
+called <strong>column reduction</strong>. It processes the boundary matrix of the entire filtered
+complex in a specific order (by filtration value) and produces the persistence pairs directly.
+</p>
+
+<div class="theorem">
+  <p class="label">Algorithm 3.15 (Standard persistence algorithm)</p>
+  <p>
+    <strong>Input:</strong> A filtered simplicial complex \(K\) with simplices ordered by filtration value:
+    \(\sigma_1, \sigma_2, \ldots, \sigma_m\).
+  </p>
+  <p>
+    <strong>Output:</strong> Persistence pairs.
+  </p>
+  <ol>
+    <li>Build the boundary matrix \(D\) where column \(j\) represents \(\partial(\sigma_j)\)
+      in terms of previously-entered simplices.</li>
+    <li>For \(j = 1, \ldots, m\):
+      <ul>
+        <li>While there exists \(j' < j\) with \(\mathrm{low}(j') = \mathrm{low}(j)\):
+          add column \(j'\) to column \(j\) (over \(\mathbb{F}_2\)).</li>
+      </ul>
+    </li>
+    <li>After reduction:
+      <ul>
+        <li>If column \(j\) is nonzero with \(\mathrm{low}(j) = i\), then
+          \((\sigma_i, \sigma_j)\) form a persistence pair:
+          \(\sigma_i\) is born and \(\sigma_j\) kills it. Record \((f(\sigma_i), f(\sigma_j))\).</li>
+        <li>If column \(j\) is zero and row \(j\) is not the \(\mathrm{low}\) of any column,
+          then \(\sigma_j\) creates an essential class.</li>
+      </ul>
+    </li>
+  </ol>
+</div>
+
+<div class="remark">
+  <p class="label">Remark 3.16 (Our implementation)</p>
+  <p>
+    Our implementation in <code>persistence.rs</code> takes a simpler approach: it samples
+    the filtration at discrete steps, computes Betti numbers at each step, and tracks
+    births and deaths by comparing consecutive Betti numbers. This is less efficient
+    than the standard algorithm but conceptually transparent and sufficient for
+    small to moderate point clouds (up to ~50 points) in a real-time interactive setting.
+  </p>
+</div>
+
+<!-- ================================================================ -->
+<h2>3.9 Computing Persistence from Point Clouds</h2>
+
+<h3>Code Stitch: PersistenceDiagram::from_point_cloud</h3>
+
+<pre><code><span class="comment">/// Compute a persistence diagram from a Vietoris-Rips filtration.</span>
+<span class="comment">/// We sample the filtration at discrete radii and track births/deaths.</span>
+<span class="comment">///</span>
+<span class="comment">/// Algorithm:</span>
+<span class="comment">///   1. Compute max pairwise distance to determine filtration range.</span>
+<span class="comment">///   2. For each step eps = k * (max_dist / num_steps):</span>
+<span class="comment">///      a. Build VR(P, eps).</span>
+<span class="comment">///      b. Compute Betti numbers.</span>
+<span class="comment">///      c. Compare with previous step:</span>
+<span class="comment">///         - If beta_k increased: new features born at eps.</span>
+<span class="comment">///         - If beta_k decreased: features died at eps.</span>
+<span class="comment">///   3. Remaining active features at the end are essential.</span>
+<span class="keyword">pub fn</span> <span class="function">from_point_cloud</span>(points: &amp;[[<span class="type">f64</span>; <span class="number">2</span>]], num_steps: <span class="type">usize</span>) -> <span class="type">Self</span> {
+    <span class="comment">// Find filtration range</span>
+    <span class="keyword">let mut</span> max_dist: <span class="type">f64</span> = <span class="number">0.0</span>;
+    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="number">0</span>..points.len() {
+        <span class="keyword">for</span> j <span class="keyword">in</span> (i+<span class="number">1</span>)..points.len() {
+            <span class="keyword">let</span> d = ((points[i][<span class="number">0</span>]-points[j][<span class="number">0</span>]).powi(<span class="number">2</span>)
+                   + (points[i][<span class="number">1</span>]-points[j][<span class="number">1</span>]).powi(<span class="number">2</span>)).sqrt();
+            <span class="keyword">if</span> d > max_dist { max_dist = d; }
+        }
+    }
+
+    <span class="keyword">let</span> step_size = max_dist / num_steps <span class="keyword">as</span> <span class="type">f64</span>;
+    <span class="keyword">let mut</span> prev_betti = <span class="type">BettiNumbers</span> { values: <span class="keyword">vec!</span>[] };
+    <span class="keyword">let mut</span> active_features: <span class="type">Vec</span>&lt;<span class="type">Vec</span>&lt;(<span class="type">f64</span>, <span class="type">usize</span>)&gt;&gt; = <span class="type">Vec</span>::new();
+    <span class="keyword">let mut</span> pairs = <span class="type">Vec</span>::new();
+
+    <span class="keyword">for</span> step <span class="keyword">in</span> <span class="number">0</span>..=num_steps {
+        <span class="keyword">let</span> radius = step <span class="keyword">as</span> <span class="type">f64</span> * step_size;
+        <span class="keyword">let</span> complex = <span class="type">SimplicialComplex</span>::vietoris_rips(points, radius);
+        <span class="keyword">let</span> betti = <span class="type">BettiNumbers</span>::compute(&amp;complex);
+
+        <span class="comment">// Compare with previous Betti numbers</span>
+        <span class="keyword">for</span> dim <span class="keyword">in</span> <span class="number">0</span>..betti.values.len() {
+            <span class="keyword">let</span> prev = prev_betti.values.get(dim).copied().unwrap_or(<span class="number">0</span>);
+            <span class="keyword">let</span> curr = betti.values[dim];
+
+            <span class="keyword">if</span> curr > prev {
+                <span class="comment">// Birth: new features at this radius</span>
+                <span class="keyword">for</span> _ <span class="keyword">in</span> <span class="number">0</span>..(curr - prev) {
+                    active_features[dim].push((radius, <span class="number">1</span>));
+                }
+            } <span class="keyword">else if</span> curr < prev {
+                <span class="comment">// Death: features killed at this radius</span>
+                <span class="keyword">for</span> _ <span class="keyword">in</span> <span class="number">0</span>..(prev - curr) {
+                    <span class="keyword">if let</span> <span class="type">Some</span>((birth, _)) = active_features[dim].pop() {
+                        pairs.push(<span class="type">PersistencePair</span> {
+                            birth, death: radius, dimension: dim,
+                        });
+                    }
+                }
+            }
+        }
+        prev_betti = betti;
+    }
+
+    <span class="comment">// Remaining features are essential (Definition 3.6)</span>
+    <span class="keyword">for</span> (dim, features) <span class="keyword">in</span> active_features.iter().enumerate() {
+        <span class="keyword">for</span> &amp;(birth, _) <span class="keyword">in</span> features {
+            pairs.push(<span class="type">PersistencePair</span> {
+                birth, death: <span class="type">f64</span>::INFINITY, dimension: dim,
+            });
+        }
+    }
+
+    <span class="comment">// Sort by persistence (longest-lived first)</span>
+    pairs.sort_by(|a, b| b.persistence().partial_cmp(&amp;a.persistence()).unwrap());
+
+    <span class="type">Self</span> { pairs }
+}
+</code></pre>
+
+<!-- ================================================================ -->
+<h2>3.10 Worked Example: Circle of Points</h2>
+
+<div class="example">
+  <p class="label">Example 3.17</p>
+  <p>
+    Consider 8 points evenly spaced on the unit circle: \(p_k = (\cos(2\pi k/8), \sin(2\pi k/8))\)
+    for \(k = 0, \ldots, 7\). The nearest-neighbor distance is \(2\sin(\pi/8) \approx 0.765\).
+  </p>
+  <p>
+    <strong>Filtration stages:</strong>
+  </p>
+  <ol>
+    <li>\(\varepsilon = 0\): 8 isolated points. \(\beta_0 = 8\), \(\beta_1 = 0\).</li>
+    <li>\(\varepsilon = 0.765\): nearest-neighbor edges appear. A cycle of 8 edges
+      forms. \(\beta_0 = 1\) (one component), \(\beta_1 = 1\) (one loop!).</li>
+    <li>\(\varepsilon = 1.414\): next-nearest-neighbor edges (\(d = 2\sin(\pi/4) = \sqrt{2}\)).
+      Triangles begin to fill the interior. \(\beta_1\) starts to decrease as the loop
+      is partially filled.</li>
+    <li>\(\varepsilon = 2.0\): the complex is nearly complete. All triangles are filled.
+      \(\beta_0 = 1\), \(\beta_1 = 0\).</li>
+  </ol>
+  <p>
+    <strong>Persistence diagram:</strong>
+  </p>
+  <ul>
+    <li>\(H_0\): Seven pairs with small persistence (components merging) and one essential class.</li>
+    <li>\(H_1\): One pair with high persistence \(\approx (0.765, 1.414)\), representing
+      the "real" loop (the hole in the middle of the circle). This is the dominant feature.</li>
+  </ul>
+  <p>
+    For sonification: the persistent \(H_1\) feature creates a sustained LFO modulation.
+    The short-lived \(H_0\) features create brief transient clicks as components merge.
+    The birth/death events drive the MorseSynth score.
+  </p>
+</div>
+
+<!-- ================================================================ -->
+<h2>3.11 From Persistence to Sound</h2>
+
+<p>
+The persistence diagram provides two primary sonification channels:
+</p>
+
+<h3>1. Persistence as Delay</h3>
+
+<p>
+Each persistence pair \((b, d)\) maps to a tap in the PersistenceDelay effect:
+</p>
+<ul>
+  <li>The <strong>delay time</strong> is proportional to the birth value \(b\): features that appear
+    early have short delays; features that appear late have long delays.</li>
+  <li>The <strong>feedback amount</strong> is proportional to the persistence \(d - b\): long-lived
+    features echo longer.</li>
+  <li>The <strong>level</strong> is inversely proportional to the dimension: \(H_0\) features are
+    loudest, \(H_1\) features softer, \(H_2\) softest.</li>
+</ul>
+
+<h3>2. Persistence as Score (Morse Theory)</h3>
+
+<p>
+The filtration is interpreted as a temporal axis. As we sweep \(\varepsilon\):
+</p>
+<ul>
+  <li><strong>Birth events</strong> trigger note-on: a new oscillator starts at a frequency
+    derived from the filtration value (log-mapped to a pitch range).</li>
+  <li><strong>Death events</strong> trigger note-off: the oscillator enters its release phase,
+    with release time proportional to the feature's persistence.</li>
+  <li>The <strong>dimension</strong> determines the waveform: \(H_0 \to\) sine, \(H_1 \to\) triangle,
+    \(H_2 \to\) sawtooth.</li>
+</ul>
+
+<p>
+This is the connection to <strong>Morse theory</strong>: the filtration function plays the role
+of a Morse function \(f : M \to \mathbb{R}\), and the critical points (births and deaths)
+are the "notes" of the score. The Morse inequalities \(c_k \geq \beta_k\) guarantee
+that the number of critical points is at least the number of topological features.
+</p>
+
+<!-- ================================================================ -->
+<h2>Exercises</h2>
+
+<div class="exercise">
+  <p class="label">Exercise 3.1</p>
+  <p>
+    Compute the persistence diagram of 4 points at the vertices of a unit square:
+    \(P = \{(0,0), (1,0), (1,1), (0,1)\}\). Identify the \(H_0\) and \(H_1\) pairs.
+    At what radius does the loop appear? At what radius does it die?
+  </p>
+</div>
+
+<div class="exercise">
+  <p class="label">Exercise 3.2</p>
+  <p>
+    Show that the total number of persistence pairs (finite + essential) in dimension \(k\)
+    is at most \(f_k\) (the number of \(k\)-simplices). Hint: each simplex is either a
+    creator (birth) or a destroyer (death) or neither, and the pairing is injective.
+  </p>
+</div>
+
+<div class="exercise">
+  <p class="label">Exercise 3.3</p>
+  <p>
+    Prove that the persistence landscape \(\lambda_j(t)\) is 1-Lipschitz:
+    \(|\lambda_j(s) - \lambda_j(t)| \leq |s - t|\) for all \(s, t\).
+  </p>
+</div>
+
+<div class="exercise">
+  <p class="label">Exercise 3.4</p>
+  <p>
+    Compute the persistence entropy of a diagram with three pairs having
+    persistences 1, 1, 1 (uniform) and a diagram with persistences 10, 1, 1
+    (one dominant). Which has higher entropy? What does this mean sonically?
+  </p>
+</div>
+
+<div class="exercise">
+  <p class="label">Exercise 3.5</p>
+  <p>
+    The stability theorem says \(d_B \leq \|f - g\|_\infty\). Give an example
+    where this bound is tight (equality holds). Give an example where it is loose.
+  </p>
+</div>
+
+<div class="exercise">
+  <p class="label">Exercise 3.6 (Implementation)</p>
+  <p>
+    The current <code>from_point_cloud</code> recomputes the entire VR complex at each
+    filtration step. Describe how to implement an <strong>incremental</strong> algorithm that
+    only adds new simplices at each step without rebuilding from scratch. What data
+    structures would you need?
+  </p>
+</div>
+
+<div class="exercise">
+  <p class="label">Exercise 3.7 (Sonification)</p>
+  <p>
+    Design a mapping from the bottleneck distance \(d_B\) between two consecutive
+    frames of the persistence diagram to an audio parameter. What perceptual
+    quality should "topological change speed" correspond to?
+  </p>
+</div>
+
+<hr>
+
+<!-- ================================================================ -->
+<h2>Why Each Result Matters: Applications Trace</h2>
+
+<div class="remark">
+  <p class="label">Application Trace: Persistence Pairs and Birth-Death (Definitions 3.4&ndash;3.5)</p>
+  <p>
+    <strong>What is a persistence pair?</strong> A pair \((b, d)\) records a topological feature
+    (a homology class) that is <em>born</em> at filtration value \(b\) and <em>dies</em> at value
+    \(d\). The feature exists in all complexes \(K_t\) for \(b \leq t < d\). The
+    <strong>persistence</strong> \(d - b\) measures the feature's lifetime &mdash; how wide a
+    range of scales it survives.
+  </p>
+  <p>
+    <strong>Why persistence is a proxy for significance:</strong> The fundamental heuristic of TDA
+    is that long-lived features are &ldquo;signal&rdquo; and short-lived features are &ldquo;noise.&rdquo;
+    A loop that appears at \(r = 0.3\) and dies at \(r = 2.1\) (persistence 1.8) is likely a
+    genuine topological feature of the underlying space. A loop that appears at \(r = 1.0\) and
+    dies at \(r = 1.05\) (persistence 0.05) is likely an artifact of the sampling.
+  </p>
+  <p>
+    <strong>In our engine:</strong> Each persistence pair maps to a delay tap in
+    <code>PersistenceDelay</code>. Longer persistence &rarr; higher feedback (louder, longer echo).
+    Short-lived pairs produce faint, quickly-decaying echoes. The persistence literally determines
+    how long the feature &ldquo;rings.&rdquo;
+  </p>
+</div>
+
+<div class="remark">
+  <p class="label">Application Trace: Essential Classes (Definition 3.6)</p>
+  <p>
+    <strong>What are essential classes?</strong> An essential class is a homology class that is
+    born at some filtration value and <em>never dies</em> &mdash; it persists to \(d = \infty\).
+    These correspond to the &ldquo;true&rdquo; topology of the underlying space (or of the
+    densest complex in the filtration).
+  </p>
+  <p>
+    <strong>Why they matter:</strong> For a VR filtration on \(n\) points, there is always exactly
+    one essential \(H_0\) class (the single connected component at the end). Any additional
+    essential classes in higher dimensions indicate genuine topological features of the data that
+    survive at all scales &mdash; the most robust features.
+  </p>
+  <p>
+    <strong>In our engine:</strong> Essential classes in <code>MorseSynth</code> produce voices
+    that never receive a &ldquo;note off&rdquo; event: sustained drones that persist throughout
+    the playback. They represent the permanent topological substrate of the space, sonified as a
+    continuous harmonic foundation.
+  </p>
+</div>
+
+<div class="remark">
+  <p class="label">Application Trace: Bottleneck and Wasserstein Distances (Definitions 3.8&ndash;3.9)</p>
+  <p>
+    <strong>What are these distances?</strong> The bottleneck distance \(d_B\) between two
+    persistence diagrams is the infimum over all matchings of the maximum cost of any matched pair.
+    The Wasserstein distance \(W_p\) is the \(p\)-th root of the infimum over all matchings of the
+    sum of \(p\)-th powers of costs. Both measure how &ldquo;different&rdquo; two persistence
+    diagrams are.
+  </p>
+  <p>
+    <strong>Why they matter:</strong> These distances turn the space of persistence diagrams into
+    a metric space, enabling: (1) <em>comparison</em> &mdash; how topologically similar are two
+    datasets? (2) <em>averaging</em> &mdash; what is the &ldquo;typical&rdquo; diagram of a
+    collection? (3) <em>machine learning</em> &mdash; kernel methods and feature maps on diagrams.
+    The stability theorem (Theorem 3.10) uses the bottleneck distance.
+  </p>
+  <p>
+    <strong>In our engine:</strong> The Wasserstein distance between consecutive frames of a
+    time-varying point cloud could drive a &ldquo;rate of topological change&rdquo; parameter:
+    rapid topological change &rarr; fast modulation, timbral roughness; slow change &rarr; smooth
+    evolution. This is specified as Exercise 3.7 (sonification design).
+  </p>
+  <p>
+    <strong>Computational note:</strong> Computing \(d_B\) reduces to a matching problem on a
+    bipartite graph, solvable in \(O(n^{1.5} \log n)\) via the Hopcroft-Karp algorithm. Computing
+    \(W_p\) reduces to optimal transport, solvable via the Hungarian algorithm in \(O(n^3)\) or
+    via Sinkhorn iterations for approximate solutions.
+  </p>
+</div>
+
+<div class="remark">
+  <p class="label">Application Trace: Filtrations and the Scale Problem</p>
+  <p>
+    The deepest conceptual contribution of persistent homology is solving the <strong>scale selection
+    problem</strong>. In classical topology, you must choose a single threshold \(r\) to build the
+    Vietoris-Rips complex \(\mathrm{VR}(X, r)\). Too small: everything is disconnected. Too large:
+    everything collapses to a single simplex. There is no canonical choice.
+  </p>
+  <p>
+    Persistent homology sidesteps this entirely by considering <em>all</em> scales simultaneously.
+    The filtration \(\mathrm{VR}(X, r_0) \subseteq \mathrm{VR}(X, r_1) \subseteq \cdots\) encodes
+    the multi-scale structure. Features that persist across a wide range of scales are &ldquo;real&rdquo;;
+    features that appear and die quickly are &ldquo;noise.&rdquo; This is the topological analogue of
+    looking at a signal at multiple frequency bands rather than a single frequency.
+  </p>
+  <p>
+    <strong>In our engine:</strong> Each persistence pair \((b, d)\) becomes a delay tap in
+    <code>PersistenceDelay</code>. Long-lived features (large \(d - b\)) echo for longer &mdash;
+    significant topological features literally reverberate through time.
+  </p>
+</div>
+
+<div class="remark">
+  <p class="label">Application Trace: Persistence Diagrams and Stability</p>
+  <p>
+    The <strong>stability theorem</strong> (Cohen-Steiner, Edelsbrunner, Harer 2007) states:
+    \[
+      d_B(\mathrm{Dgm}(f), \mathrm{Dgm}(g)) \leq \|f - g\|_\infty
+    \]
+    where \(d_B\) is the bottleneck distance between persistence diagrams. This is a Lipschitz
+    condition: small perturbations in the input produce small changes in the persistence diagram.
+  </p>
+  <p>
+    <strong>Why this matters for sonification:</strong> It guarantees that our audio output changes
+    <em>continuously</em> when the point cloud is perturbed. If a user drags a point slightly, the
+    sound doesn't jump discontinuously &mdash; it morphs smoothly. Without stability, the mapping
+    from topology to sound would be brittle and unusable as a real-time instrument.
+  </p>
+  <p>
+    <strong>Broader applications:</strong> Stability is the reason TDA works on noisy real-world data.
+    It has been applied to: shape recognition (robust to sampling noise), protein structure classification
+    (invariant under thermal fluctuations), sensor network coverage verification (tolerant of
+    position uncertainty), and brain connectivity analysis (stable across fMRI sessions).
+  </p>
+</div>
+
+<div class="remark">
+  <p class="label">Application Trace: Persistence Landscapes</p>
+  <p>
+    The persistence diagram is a multiset, which is awkward for statistical operations (how do you
+    compute a mean of multisets?). Bubenik (2015) introduced <strong>persistence landscapes</strong>
+    \(\lambda_k(t)\): real-valued functions defined by sorting the tent functions of persistence
+    intervals. Landscapes live in a Banach space, so you can add, average, and do functional
+    analysis on them.
+  </p>
+  <p>
+    <strong>In our engine:</strong> <code>PersistenceDiagram::landscape(dim, k, t)</code> evaluates the
+    \(k\)-th landscape function at parameter \(t\). This provides a continuous, differentiable
+    signal that can directly modulate audio parameters &mdash; far smoother than using raw birth/death
+    pairs.
+  </p>
+</div>
+
+<div class="remark">
+  <p class="label">Application Trace: Persistence Entropy</p>
+  <p>
+    Persistence entropy \(H = -\sum p_i \log p_i\), where \(p_i = \mathrm{pers}_i / \sum \mathrm{pers}_j\),
+    measures the &ldquo;complexity&rdquo; or &ldquo;disorder&rdquo; of the persistence diagram.
+    High entropy: many features of similar persistence (complex, disordered topology).
+    Low entropy: one dominant feature (simple, ordered topology).
+  </p>
+  <p>
+    <strong>In our engine:</strong> Entropy could control the density of the reverb, the number of
+    active modulation sources, or the overall timbral brightness &mdash; a single scalar that captures
+    &ldquo;how topologically complicated is this space?&rdquo;
+  </p>
+  <p>
+    <strong>Applications:</strong> Persistence entropy has been used in: distinguishing tumor types
+    from histopathology images (Atienza et al. 2019), classifying time series (Perea &amp; Harer 2015),
+    and detecting phase transitions in materials (Hirata et al. 2020).
+  </p>
+</div>
+
+<!-- ================================================================ -->
+<h2>References</h2>
+
+<h3>Foundational Papers</h3>
+
+<ol style="margin: 0.5rem 0 1.5rem 2rem; line-height: 2.2;">
+  <li><strong>Edelsbrunner, H., Letscher, D., and Zomorodian, A.</strong>
+    &ldquo;Topological persistence and simplification.&rdquo;
+    <em>Discrete Comput. Geom.</em> 28(4) (2002), 511&ndash;533.
+    <br><span style="color:var(--fg-dim);">The paper that introduced persistent homology. Defines persistence pairs, the persistence
+    diagram, and gives the first algorithm (matrix reduction). Our filtration-sweep approach in
+    <code>PersistenceDiagram::from_point_cloud()</code> is a simplified version.</span></li>
+
+  <li><strong>Zomorodian, A. and Carlsson, G.</strong>
+    &ldquo;Computing persistent homology.&rdquo;
+    <em>Discrete Comput. Geom.</em> 33(2) (2005), 249&ndash;274.
+    <br><span style="color:var(--fg-dim);">The standard algorithm for persistence via column reduction of the boundary matrix.
+    Introduces the persistence module and the structure theorem. Our <code>rank_z2()</code>
+    implements the core column-reduction step.</span></li>
+
+  <li><strong>Cohen-Steiner, D., Edelsbrunner, H., and Harer, J.</strong>
+    &ldquo;Stability of persistence diagrams.&rdquo;
+    <em>Discrete Comput. Geom.</em> 37(1) (2007), 103&ndash;120.
+    <br><span style="color:var(--fg-dim);">Proves the bottleneck stability theorem. This is the theoretical bedrock of TDA: it
+    guarantees that persistence diagrams are robust to perturbation.</span></li>
+
+  <li><strong>Chazal, F., Cohen-Steiner, D., Glisse, M., Guibas, L.J., and Oudot, S.Y.</strong>
+    &ldquo;Proximity of persistence modules and their diagrams.&rdquo;
+    <em>Proc. 25th ACM Symp. Comput. Geom.</em> (2009), 237&ndash;246.
+    <br><span style="color:var(--fg-dim);">Extends stability to the algebraic setting of persistence modules. Introduces the
+    interleaving distance.</span></li>
+</ol>
+
+<h3>Algorithms and Computation</h3>
+
+<ol start="5" style="margin: 0.5rem 0 1.5rem 2rem; line-height: 2.2;">
+  <li><strong>Bauer, U.</strong>
+    &ldquo;Ripser: efficient computation of Vietoris-Rips persistence barcodes.&rdquo;
+    <em>J. Appl. Comput. Topology</em> 5 (2021), 391&ndash;423. arXiv:1908.02518.
+    <br><span style="color:var(--fg-dim);">The current state-of-the-art algorithm. Uses implicit matrix representation, apparent pairs,
+    and cohomology to achieve orders-of-magnitude speedup. A future optimization target for our engine.</span></li>
+
+  <li><strong>Chen, C. and Kerber, M.</strong>
+    &ldquo;Persistent homology computation with a twist.&rdquo;
+    <em>Proc. 27th European Workshop on Computational Geometry</em> (2011).
+    <br><span style="color:var(--fg-dim);">The &ldquo;twist&rdquo; optimization: clearing columns that are known to be zero. Provides
+    significant practical speedup at no asymptotic cost.</span></li>
+</ol>
+
+<h3>Persistence Landscapes and Statistics</h3>
+
+<ol start="7" style="margin: 0.5rem 0 1.5rem 2rem; line-height: 2.2;">
+  <li><strong>Bubenik, P.</strong>
+    &ldquo;Statistical topological data analysis using persistence landscapes.&rdquo;
+    <em>J. Mach. Learn. Res.</em> 16 (2015), 77&ndash;102. arXiv:1207.6437.
+    <br><span style="color:var(--fg-dim);">Introduces persistence landscapes as elements of a Banach space.
+    Our <code>landscape()</code> method implements Definition 3 from this paper.</span></li>
+
+  <li><strong>Adams, H., Emerson, T., Kirby, M., et al.</strong>
+    &ldquo;Persistence images: a stable vector representation of persistent homology.&rdquo;
+    <em>J. Mach. Learn. Res.</em> 18(8) (2017), 1&ndash;35.
+    <br><span style="color:var(--fg-dim);">An alternative vectorization of persistence diagrams using weighted Gaussian kernels.
+    Could provide smoother audio parameter modulation than raw persistence pairs.</span></li>
+
+  <li><strong>Atienza, N., Gonzalez-Diaz, R., and Soriano-Trigueros, M.</strong>
+    &ldquo;On the stability of persistent entropy and new summary functions for topological data analysis.&rdquo;
+    <em>Pattern Recognition</em> 107 (2020), 107509. arXiv:1803.08304.
+    <br><span style="color:var(--fg-dim);">Proves stability of persistence entropy and introduces normalized variants.
+    Our <code>persistence_entropy()</code> follows the unnormalized definition from this paper.</span></li>
+</ol>
+
+<h3>Textbooks</h3>
+
+<ol start="10" style="margin: 0.5rem 0 1.5rem 2rem; line-height: 2.2;">
+  <li><strong>Edelsbrunner, H. and Harer, J.L.</strong> <em>Computational Topology: An Introduction</em>.
+    AMS, 2010. Chapters VI&ndash;VIII.
+    <br><span style="color:var(--fg-dim);">The standard textbook treatment of persistent homology, including the standard algorithm
+    and the stability theorem.</span></li>
+
+  <li><strong>Oudot, S.Y.</strong> <em>Persistence Theory: From Quiver Representations to Data Analysis</em>.
+    AMS Mathematical Surveys and Monographs 209, 2015.
+    <br><span style="color:var(--fg-dim);">The algebraic foundations of persistence. The structure theorem for persistence modules
+    (decomposition into interval modules) is the reason persistence diagrams are well-defined.</span></li>
+
+  <li><strong>Polterovich, L., Rosen, D., Samvelyan, K., and Zhang, J.</strong>
+    <em>Topological Persistence in Geometry and Analysis</em>. AMS University Lecture Series 74, 2020.
+    <br><span style="color:var(--fg-dim);">Connects persistent homology to symplectic geometry, dynamical systems, and function spaces.
+    For the mathematically adventurous reader.</span></li>
+</ol>
+
+<p style="text-align: center; margin-top: 2em;">
+  <a href="02-homology.html">&larr; Chapter 2: Homology</a>
+  &emsp;|&emsp;
+  <a href="04-sonification-mapping.html">Chapter 4: The Sonification Mapping &rarr;</a>
+</p>
+
+<div class="footer">
+  <p>topo-sonify &middot; Chapter 3: Persistent Homology and Filtrations</p>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,1102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chapter 2: Homology and the Boundary Operator &mdash; Topology-First Sonification</title>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --bg-code: #111118;
+    --fg: #c8c8d0;
+    --fg-dim: #6a6a7a;
+    --fg-bright: #e8e8f0;
+    --accent: #7aa2f7;
+    --accent2: #9ece6a;
+    --accent3: #bb9af7;
+    --accent4: #f7768e;
+    --accent5: #e0af68;
+    --border: #1a1a2e;
+    --link: #7aa2f7;
+    --link-hover: #9dc0ff;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: 'Berkeley Mono', 'JetBrains Mono', 'Fira Code', 'SF Mono', 'Cascadia Code', monospace;
+    font-size: 15px;
+    line-height: 1.75;
+    max-width: 52em;
+    margin: 0 auto;
+    padding: 3em 2em 6em;
+  }
+  h1, h2, h3, h4 { color: var(--fg-bright); font-weight: 600; margin-top: 2.5em; margin-bottom: 0.75em; }
+  h1 { font-size: 1.8em; border-bottom: 2px solid var(--accent); padding-bottom: 0.4em; margin-top: 0; }
+  h2 { font-size: 1.4em; border-bottom: 1px solid var(--border); padding-bottom: 0.3em; }
+  h3 { font-size: 1.15em; color: var(--accent3); }
+  h4 { font-size: 1.0em; color: var(--accent5); }
+  p { margin-bottom: 1em; }
+  a { color: var(--link); text-decoration: none; border-bottom: 1px solid transparent; transition: border-color 0.2s; }
+  a:hover { color: var(--link-hover); border-bottom-color: var(--link-hover); }
+  ul, ol { margin-bottom: 1em; padding-left: 1.5em; }
+  li { margin-bottom: 0.35em; }
+  blockquote { border-left: 3px solid var(--accent3); padding: 0.75em 1.25em; margin: 1.5em 0; background: rgba(187,154,247,0.05); font-style: italic; }
+  pre { background: var(--bg-code); border: 1px solid var(--border); border-radius: 4px; padding: 1.25em; overflow-x: auto; margin: 1.5em 0; font-size: 0.9em; line-height: 1.6; }
+  code { background: var(--bg-code); padding: 0.15em 0.4em; border-radius: 3px; font-size: 0.92em; }
+  pre code { background: none; padding: 0; }
+  .keyword { color: var(--accent3); }
+  .type { color: var(--accent); }
+  .string { color: var(--accent2); }
+  .comment { color: var(--fg-dim); font-style: italic; }
+  .number { color: var(--accent5); }
+  .function { color: var(--accent); }
+  .nav { display: flex; justify-content: space-between; align-items: center; padding: 1em 0; border-bottom: 1px solid var(--border); margin-bottom: 2em; flex-wrap: wrap; gap: 0.5em; }
+  .nav a { color: var(--fg-dim); font-size: 0.85em; padding: 0.3em 0.6em; border: 1px solid var(--border); border-radius: 3px; transition: all 0.2s; }
+  .nav a:hover { color: var(--accent); border-color: var(--accent); }
+  .nav a.active { color: var(--accent); border-color: var(--accent); }
+  .definition { border-left: 3px solid var(--accent); padding: 1em 1.25em; margin: 1.5em 0; background: rgba(122,162,247,0.04); }
+  .definition .label { color: var(--accent); font-weight: 600; margin-bottom: 0.5em; }
+  .theorem { border-left: 3px solid var(--accent2); padding: 1em 1.25em; margin: 1.5em 0; background: rgba(158,206,106,0.04); }
+  .theorem .label { color: var(--accent2); font-weight: 600; margin-bottom: 0.5em; }
+  .proof { border-left: 3px solid var(--fg-dim); padding: 1em 1.25em; margin: 1.5em 0; background: rgba(106,106,122,0.04); }
+  .proof .label { color: var(--fg-dim); font-weight: 600; margin-bottom: 0.5em; }
+  .remark { border-left: 3px solid var(--accent5); padding: 1em 1.25em; margin: 1.5em 0; background: rgba(224,175,104,0.04); }
+  .remark .label { color: var(--accent5); font-weight: 600; margin-bottom: 0.5em; }
+  .example { border-left: 3px solid var(--accent4); padding: 1em 1.25em; margin: 1.5em 0; background: rgba(247,118,142,0.04); }
+  .example .label { color: var(--accent4); font-weight: 600; margin-bottom: 0.5em; }
+  .exercise { border-left: 3px solid var(--accent2); padding: 1em 1.25em; margin: 1em 0; background: rgba(158,206,106,0.03); }
+  .exercise .label { color: var(--accent2); font-weight: 600; margin-bottom: 0.5em; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 3em 0; }
+  .footer { margin-top: 4em; padding-top: 1.5em; border-top: 1px solid var(--border); color: var(--fg-dim); font-size: 0.85em; text-align: center; }
+  table { border-collapse: collapse; margin: 1.5em 0; width: 100%; }
+  th, td { padding: 0.5em 1em; border: 1px solid var(--border); text-align: center; }
+  th { background: var(--bg-code); color: var(--accent); }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a href="index.html">Home</a>
+  <a href="01-simplicial-complexes.html">Ch.1 Simplices</a>
+  <a class="active" href="02-homology.html">Ch.2 Homology</a>
+  <a href="03-persistent-homology.html">Ch.3 Persistence</a>
+  <a href="04-sonification-mapping.html">Ch.4 Sonification</a>
+  <a href="05-storyboard.html">Storyboard</a>
+</nav>
+
+<h1>Chapter 2: Homology and the Boundary Operator</h1>
+<p style="color: var(--fg-dim);">Detecting holes algebraically</p>
+
+<!-- ================================================================ -->
+<h2>2.1 Motivation</h2>
+
+<p>
+Consider three fundamental topological spaces: the filled disk \(D^2\), the circle
+\(S^1\) (boundary of the disk), and the 2-sphere \(S^2\) (hollow ball). Intuitively,
+these differ in their "holes":
+</p>
+<ul>
+  <li>\(D^2\) has no holes of any kind.</li>
+  <li>\(S^1\) has a 1-dimensional hole (the loop that cannot be contracted to a point).</li>
+  <li>\(S^2\) has a 2-dimensional hole (the enclosed void).</li>
+</ul>
+
+<p>
+Homology provides a precise algebraic framework for counting these holes. The
+key idea: a "hole" is a <em>cycle that is not a boundary</em>. A cycle is a chain of
+simplices with no boundary (it closes up on itself). A boundary is a cycle that
+arises as the boundary of a higher-dimensional chain. The quotient "cycles modulo
+boundaries" is the homology group, and its rank is the Betti number.
+</p>
+
+<p>
+For our sonification, the Betti numbers are the primary control parameters. They
+determine the number of oscillator voices (\(\beta_0\)), the depth of cyclic
+modulation (\(\beta_1\)), and the number of sub-oscillators (\(\beta_2\)).
+Everything in the audio signal chain flows from these numbers.
+</p>
+
+<!-- ================================================================ -->
+<h2>2.2 Chain Groups</h2>
+
+<div class="definition">
+  <p class="label">Definition 2.1 (Chain group)</p>
+  <p>
+    Let \(K\) be a simplicial complex and \(\mathbb{F}\) a field (we use
+    \(\mathbb{F}_2 = \mathbb{Z}/2\mathbb{Z}\)). The <strong>\(k\)-th chain group</strong>
+    \(C_k(K; \mathbb{F})\) is the \(\mathbb{F}\)-vector space with basis the
+    set of \(k\)-simplices of \(K\). An element of \(C_k\) is called a
+    <strong>\(k\)-chain</strong> and has the form:
+    \[
+      c = \sum_{\sigma \in K, \, \dim\sigma = k} a_\sigma \, \sigma, \quad a_\sigma \in \mathbb{F}.
+    \]
+    Over \(\mathbb{F}_2\), each coefficient is 0 or 1, so a \(k\)-chain is simply a
+    <em>subset</em> of the \(k\)-simplices. Addition is symmetric difference (XOR).
+  </p>
+</div>
+
+<p>
+The dimension of \(C_k\) as an \(\mathbb{F}\)-vector space is \(f_k\), the number of
+\(k\)-simplices. Over \(\mathbb{F}_2\), there are \(2^{f_k}\) elements in \(C_k\).
+</p>
+
+<div class="remark">
+  <p class="label">Remark 2.2 (Why \(\mathbb{F}_2\)?)</p>
+  <p>
+    Working over \(\mathbb{F}_2\) eliminates the need for orientations. Over \(\mathbb{Z}\),
+    simplices must be oriented and the boundary formula involves signs that cancel
+    correctly only with consistent orientations. Over \(\mathbb{F}_2\), all signs
+    are 1 (since \(-1 \equiv 1\)), so we need only track which faces are present,
+    not their orientations. This simplifies both the theory and the implementation.
+    The price: we lose torsion information (\(\mathbb{F}_2\)-homology cannot detect
+    torsion in \(H_k(K; \mathbb{Z})\)). For our purposes, this is acceptable.
+  </p>
+</div>
+
+<!-- ================================================================ -->
+<h2>2.3 The Boundary Operator</h2>
+
+<div class="definition">
+  <p class="label">Definition 2.3 (Boundary operator)</p>
+  <p>
+    The <strong>boundary operator</strong> \(\partial_k : C_k(K; \mathbb{F}) \to C_{k-1}(K; \mathbb{F})\)
+    is the linear map defined on basis elements by:
+    \[
+      \partial_k([v_0, v_1, \ldots, v_k]) = \sum_{i=0}^{k} (-1)^i \, [v_0, \ldots, \hat{v}_i, \ldots, v_k],
+    \]
+    where \(\hat{v}_i\) denotes omission of \(v_i\). Over \(\mathbb{F}_2\), the signs
+    vanish and this simplifies to:
+    \[
+      \partial_k(\sigma) = \sum_{i=0}^{k} d_i(\sigma),
+    \]
+    where \(d_i\) is the \(i\)-th face operator (Definition 1.4). The boundary of
+    a \(k\)-simplex is the (formal) sum of its codimension-1 faces.
+  </p>
+</div>
+
+<div class="example">
+  <p class="label">Example 2.4</p>
+  <p>
+    The boundary of the triangle \([0,1,2]\) over \(\mathbb{Z}\) is:
+    \[
+      \partial_2([0,1,2]) = [1,2] - [0,2] + [0,1].
+    \]
+    Over \(\mathbb{F}_2\), this becomes:
+    \[
+      \partial_2([0,1,2]) = [1,2] + [0,2] + [0,1].
+    \]
+    This is the formal sum of the three edges of the triangle&mdash;which is indeed
+    its geometric boundary.
+  </p>
+  <p>
+    The boundary of the edge \([0,1]\) is:
+    \[
+      \partial_1([0,1]) = [1] - [0] = [1] + [0] \quad (\text{over } \mathbb{F}_2).
+    \]
+  </p>
+</div>
+
+<!-- ================================================================ -->
+<h2>2.4 The Fundamental Property: \(\partial^2 = 0\)</h2>
+
+<div class="theorem">
+  <p class="label">Theorem 2.5 (\(\partial^2 = 0\))</p>
+  <p>
+    The composition \(\partial_{k-1} \circ \partial_k = 0\) for all \(k\). That is,
+    the boundary of a boundary is zero.
+  </p>
+</div>
+
+<div class="proof">
+  <p class="label">Proof</p>
+  <p>
+    It suffices to check on basis elements. Let \(\sigma = [v_0, \ldots, v_k]\).
+    Then:
+    \[
+      \partial_{k-1}(\partial_k(\sigma))
+      = \partial_{k-1}\!\left(\sum_{i=0}^{k} (-1)^i [v_0, \ldots, \hat{v}_i, \ldots, v_k]\right)
+      = \sum_{i=0}^{k} (-1)^i \sum_{j=0}^{k-1} (-1)^{j'} [v_0, \ldots, \hat{v}_i, \ldots, \hat{v}_{j'}, \ldots, v_k],
+    \]
+    where we must be careful with the index \(j'\) in the reduced simplex.
+  </p>
+  <p>
+    Each pair \(\{i, j\}\) with \(i \neq j\) contributes two terms to this double
+    sum&mdash;once with the sign \((-1)^{i+j}\) (when \(i\) is removed first, then
+    \(j\)) and once with the sign \((-1)^{i+j-1}\) or \((-1)^{i+j+1}\) depending
+    on the relative order. The two signs differ by a factor of \(-1\), so the
+    terms cancel in pairs:
+    \[
+      (-1)^{i+j} + (-1)^{i+j+1} = (-1)^{i+j}(1 - 1) = 0.
+    \]
+    Since every term in the double sum is paired with a canceling term, the total
+    is zero. Over \(\mathbb{F}_2\), the same argument works: each codimension-2 face
+    appears exactly twice (an even number), and \(1 + 1 = 0\) in \(\mathbb{F}_2\). \(\square\)
+  </p>
+</div>
+
+<div class="remark">
+  <p class="label">Remark 2.6</p>
+  <p>
+    This is not just a computational fact but the fundamental property that makes
+    homology well-defined. The equation \(\partial^2 = 0\) ensures that every
+    boundary is automatically a cycle (\(\mathrm{im}(\partial_{k+1}) \subseteq \ker(\partial_k)\)),
+    which is required for the quotient \(H_k = \ker(\partial_k) / \mathrm{im}(\partial_{k+1})\)
+    to make sense.
+  </p>
+</div>
+
+<p>
+The sequence of chain groups and boundary operators:
+\[
+  \cdots \xrightarrow{\partial_{k+2}} C_{k+1} \xrightarrow{\partial_{k+1}} C_k \xrightarrow{\partial_k} C_{k-1} \xrightarrow{\partial_{k-1}} \cdots \xrightarrow{\partial_1} C_0 \xrightarrow{\partial_0} 0
+\]
+is called a <strong>chain complex</strong>, denoted \(C_\bullet(K)\). The property \(\partial^2 = 0\)
+is exactly the condition that makes this a chain complex in the algebraic sense.
+</p>
+
+<!-- ================================================================ -->
+<h2>2.5 Cycles, Boundaries, and Homology</h2>
+
+<div class="definition">
+  <p class="label">Definition 2.7 (Cycles and boundaries)</p>
+  <p>
+    The <strong>\(k\)-cycles</strong> are the elements of the kernel of \(\partial_k\):
+    \[
+      Z_k = \ker(\partial_k) = \{ c \in C_k \mid \partial_k(c) = 0 \}.
+    \]
+    The <strong>\(k\)-boundaries</strong> are the elements of the image of \(\partial_{k+1}\):
+    \[
+      B_k = \mathrm{im}(\partial_{k+1}) = \{ \partial_{k+1}(c') \mid c' \in C_{k+1} \}.
+    \]
+  </p>
+</div>
+
+<p>
+By Theorem 2.5, \(B_k \subseteq Z_k\): every boundary is a cycle. The converse
+is generally false&mdash;there may be cycles that are not boundaries. These
+"non-trivial" cycles represent genuine topological holes.
+</p>
+
+<div class="definition">
+  <p class="label">Definition 2.8 (Homology group)</p>
+  <p>
+    The <strong>\(k\)-th homology group</strong> of \(K\) with coefficients in \(\mathbb{F}\) is
+    the quotient vector space:
+    \[
+      H_k(K; \mathbb{F}) = Z_k / B_k = \ker(\partial_k) / \mathrm{im}(\partial_{k+1}).
+    \]
+    Two cycles \(z, z' \in Z_k\) represent the same homology class \([z] = [z']\)
+    if and only if their difference is a boundary: \(z - z' \in B_k\).
+  </p>
+</div>
+
+<div class="definition">
+  <p class="label">Definition 2.9 (Betti numbers)</p>
+  <p>
+    The <strong>\(k\)-th Betti number</strong> is:
+    \[
+      \beta_k = \dim_{\mathbb{F}} H_k(K; \mathbb{F}) = \dim(Z_k) - \dim(B_k).
+    \]
+  </p>
+</div>
+
+<!-- ================================================================ -->
+<h2>2.6 Geometric Meaning of Betti Numbers</h2>
+
+<p>
+The Betti numbers have a direct geometric interpretation that drives our
+sonification design:
+</p>
+
+<h3>\(\beta_0\): Connected Components</h3>
+
+<p>
+\(\beta_0 = \dim H_0\) counts the number of <strong>connected components</strong> of \(K\).
+A 0-cycle is a formal sum of vertices; it is a boundary if and only if the
+vertices can be connected by a path of edges. Two vertices are "homologous"
+(represent the same class in \(H_0\)) if and only if they are in the same
+connected component.
+</p>
+
+<div class="remark">
+  <p class="label">Remark 2.10 (Sonification: \(\beta_0 \to\) voices)</p>
+  <p>
+    Each connected component is an independent topological entity, so it gets its
+    own oscillator voice in the BettiDrone. A single component produces a
+    unison drone; two components produce two independent pitches; three
+    components produce a three-note chord. The component structure literally
+    determines the polyphony.
+  </p>
+</div>
+
+<h3>\(\beta_1\): Independent Loops</h3>
+
+<p>
+\(\beta_1 = \dim H_1\) counts the number of <strong>independent loops</strong> (1-dimensional
+holes). A 1-cycle is a formal sum of edges that forms a closed curve; it is a
+boundary if and only if it bounds a 2-chain (a "membrane" of triangles).
+A loop that cannot be filled in represents a genuine 1-dimensional hole.
+</p>
+
+<div class="remark">
+  <p class="label">Remark 2.11 (Sonification: \(\beta_1 \to\) modulation)</p>
+  <p>
+    Loops are inherently <em>periodic</em>&mdash;they are topological circles. Each
+    independent loop becomes a low-frequency oscillator (LFO) that cyclically
+    modulates the pitch of the drone. The periodic structure of \(H_1\) becomes
+    audible as periodic amplitude or frequency modulation. More loops = deeper,
+    more complex modulation.
+  </p>
+</div>
+
+<h3>\(\beta_2\): Enclosed Voids</h3>
+
+<p>
+\(\beta_2 = \dim H_2\) counts the number of <strong>enclosed voids</strong> (2-dimensional holes).
+A 2-cycle is a formal sum of triangles that forms a closed surface; it is a boundary
+if and only if it bounds a 3-chain (a "solid" volume of tetrahedra). A closed
+surface that does not bound a solid represents a void&mdash;an enclosed empty space.
+</p>
+
+<div class="remark">
+  <p class="label">Remark 2.12 (Sonification: \(\beta_2 \to\) sub-oscillators)</p>
+  <p>
+    Voids add depth. Just as the resonant cavity of an acoustic instrument
+    (the body of a guitar, the bell of a horn) creates sub-harmonics that add
+    warmth and richness, each topological void in our complex activates a
+    sub-oscillator tuned one octave below the fundamental. The void literally
+    becomes a resonant cavity in the sound.
+  </p>
+</div>
+
+<!-- ================================================================ -->
+<h2>2.7 The Rank-Nullity Theorem and Betti Number Computation</h2>
+
+<div class="theorem">
+  <p class="label">Theorem 2.13 (Rank-nullity)</p>
+  <p>
+    For a linear map \(T : V \to W\) between finite-dimensional vector spaces,
+    \[
+      \dim V = \mathrm{rank}(T) + \mathrm{nullity}(T) = \dim(\mathrm{im}(T)) + \dim(\ker(T)).
+    \]
+  </p>
+</div>
+
+<div class="theorem">
+  <p class="label">Corollary 2.14 (Betti number formula)</p>
+  <p>
+    Applying rank-nullity to \(\partial_k : C_k \to C_{k-1}\):
+    \[
+      \dim(\ker \partial_k) = \dim(C_k) - \mathrm{rank}(\partial_k) = f_k - \mathrm{rank}(\partial_k).
+    \]
+    Therefore:
+    \[
+      \beta_k = \dim(Z_k) - \dim(B_k) = \dim(\ker \partial_k) - \mathrm{rank}(\partial_{k+1})
+      = f_k - \mathrm{rank}(\partial_k) - \mathrm{rank}(\partial_{k+1}).
+    \]
+    This reduces Betti number computation to <strong>matrix rank computation</strong> over
+    \(\mathbb{F}_2\).
+  </p>
+</div>
+
+<p>
+This is exactly how our code computes Betti numbers: for each \(k\), we build
+the boundary matrices \(\partial_k\) and \(\partial_{k+1}\), compute their ranks via
+Gaussian elimination over \(\mathbb{F}_2\), and apply the formula above.
+</p>
+
+<!-- ================================================================ -->
+<h2>2.8 Worked Examples</h2>
+
+<h3>Example: The Filled Triangle</h3>
+
+<div class="example">
+  <p class="label">Example 2.15</p>
+  <p>
+    Let \(K = \{[0],[1],[2],[01],[02],[12],[012]\}\) be the filled triangle.
+    The \(f\)-vector is \((3, 3, 1)\).
+  </p>
+  <p>
+    <strong>Boundary matrices over \(\mathbb{F}_2\):</strong>
+  </p>
+  <p>
+    \(\partial_1 : C_1 \to C_0\) is a \(3 \times 3\) matrix:
+    \[
+      \partial_1 = \begin{pmatrix} 1 & 1 & 0 \\ 1 & 0 & 1 \\ 0 & 1 & 1 \end{pmatrix}
+    \]
+    where columns correspond to edges \([01], [02], [12]\) and rows to vertices
+    \([0], [1], [2]\). Over \(\mathbb{F}_2\), each edge maps to the sum of its endpoints.
+  </p>
+  <p>
+    \(\partial_2 : C_2 \to C_1\) is a \(3 \times 1\) matrix:
+    \[
+      \partial_2 = \begin{pmatrix} 1 \\ 1 \\ 1 \end{pmatrix}
+    \]
+    The single triangle maps to the sum of its three edges (all signs are 1 over \(\mathbb{F}_2\)).
+  </p>
+  <p>
+    <strong>Ranks:</strong> \(\mathrm{rank}(\partial_1) = 2\) (row reduce: the third row is the sum
+    of the first two over \(\mathbb{F}_2\)). \(\mathrm{rank}(\partial_2) = 1\).
+  </p>
+  <p>
+    <strong>Betti numbers:</strong>
+  </p>
+  <ul>
+    <li>\(\beta_0 = f_0 - \mathrm{rank}(\partial_1) = 3 - 2 = 1\). One connected component.</li>
+    <li>\(\beta_1 = f_1 - \mathrm{rank}(\partial_1) - \mathrm{rank}(\partial_2) = 3 - 2 - 1 = 0\). No loops (the interior is filled).</li>
+    <li>\(\beta_2 = f_2 - \mathrm{rank}(\partial_2) = 1 - 1 = 0\). No voids.</li>
+  </ul>
+  <p>
+    \(\chi = 1 - 0 + 0 = 1 = 3 - 3 + 1\). Consistent.
+  </p>
+</div>
+
+<h3>Example: The Boundary of a Triangle (\(S^1\))</h3>
+
+<div class="example">
+  <p class="label">Example 2.16</p>
+  <p>
+    Let \(K = \{[0],[1],[2],[01],[02],[12]\}\)&mdash;three edges forming a cycle,
+    without the filled interior. \(\mathbf{f} = (3, 3)\).
+  </p>
+  <p>
+    \(\partial_1\) is the same \(3 \times 3\) matrix as before. \(\mathrm{rank}(\partial_1) = 2\).
+    There is no \(\partial_2\) (no 2-simplices), so \(\mathrm{rank}(\partial_2) = 0\).
+  </p>
+  <ul>
+    <li>\(\beta_0 = 3 - 2 = 1\). Connected.</li>
+    <li>\(\beta_1 = 3 - 2 - 0 = 1\). One loop! The cycle \([01] + [12] + [02]\) is a 1-cycle
+      (its boundary is \([0]+[1]+[1]+[2]+[0]+[2] = 0\) over \(\mathbb{F}_2\)), and it
+      is not a boundary (there is no 2-chain). This detects the hole in the middle.</li>
+  </ul>
+  <p>
+    \(\chi = 1 - 1 = 0 = 3 - 3\). This is \(\chi(S^1) = 0\), as expected.
+  </p>
+</div>
+
+<h3>Example: The Hollow Tetrahedron (\(S^2\))</h3>
+
+<div class="example">
+  <p class="label">Example 2.17</p>
+  <p>
+    \(K\) consists of 4 triangular faces \([012], [013], [023], [123]\) and all their
+    faces, but <em>not</em> the solid tetrahedron \([0123]\). \(\mathbf{f} = (4, 6, 4)\).
+  </p>
+  <p>
+    The boundary matrices have sizes:
+  </p>
+  <ul>
+    <li>\(\partial_1\): \(4 \times 6\). The 6 columns are the edges; each maps to the XOR of its two endpoints. \(\mathrm{rank} = 3\).</li>
+    <li>\(\partial_2\): \(6 \times 4\). The 4 columns are the triangles; each maps to the XOR of its three edges. \(\mathrm{rank} = 3\).</li>
+  </ul>
+  <p>
+    Betti numbers:
+  </p>
+  <ul>
+    <li>\(\beta_0 = 4 - 3 = 1\). Connected.</li>
+    <li>\(\beta_1 = 6 - 3 - 3 = 0\). No loops (every cycle of edges bounds a membrane of triangles).</li>
+    <li>\(\beta_2 = 4 - 3 = 1\). One void! The 2-cycle \([012]+[013]+[023]+[123]\) is a closed surface
+      (check: each edge appears in exactly 2 triangles, so the boundary is 0 over \(\mathbb{F}_2\)),
+      but it does not bound a 3-chain (there is no tetrahedron).</li>
+  </ul>
+  <p>
+    \(\chi = 1 - 0 + 1 = 2 = 4 - 6 + 4\). This is \(\chi(S^2) = 2\).
+  </p>
+</div>
+
+<h3>Example: The Torus \(T^2\)</h3>
+
+<div class="example">
+  <p class="label">Example 2.18</p>
+  <p>
+    The torus \(T^2\) can be triangulated with 7 vertices, 21 edges, and 14 triangles
+    (the minimal triangulation). Without constructing the full boundary matrices,
+    we state the Betti numbers:
+  </p>
+  <ul>
+    <li>\(\beta_0 = 1\). Connected.</li>
+    <li>\(\beta_1 = 2\). Two independent loops: one around the "hole" of the torus, one around the "tube."</li>
+    <li>\(\beta_2 = 1\). One void (the interior of the torus is enclosed).</li>
+  </ul>
+  <p>
+    \(\chi = 1 - 2 + 1 = 0 = 7 - 21 + 14\).
+  </p>
+  <p>
+    For sonification, a torus produces a drone with 1 fundamental voice,
+    2 LFOs (two-dimensional modulation!), and 1 sub-oscillator. The double
+    modulation from \(\beta_1 = 2\) creates a rich, evolving timbre.
+  </p>
+</div>
+
+<!-- ================================================================ -->
+<h2>2.9 The Euler-Poincar&eacute; Theorem</h2>
+
+<div class="theorem">
+  <p class="label">Theorem 2.19 (Euler-Poincar&eacute;)</p>
+  <p>
+    For any simplicial complex \(K\) with \(f\)-vector \((f_0, f_1, \ldots, f_d)\)
+    and Betti numbers \(\beta_0, \beta_1, \ldots, \beta_d\):
+    \[
+      \chi(K) = \sum_{k=0}^{d} (-1)^k f_k = \sum_{k=0}^{d} (-1)^k \beta_k.
+    \]
+  </p>
+</div>
+
+<div class="proof">
+  <p class="label">Proof</p>
+  <p>
+    Using the rank-nullity theorem and the Betti number formula:
+    \begin{align}
+      \sum_{k=0}^{d} (-1)^k \beta_k
+      &= \sum_{k=0}^{d} (-1)^k \bigl(f_k - r_k - r_{k+1}\bigr) \\
+      &= \sum_{k=0}^{d} (-1)^k f_k - \sum_{k=0}^{d} (-1)^k r_k - \sum_{k=0}^{d} (-1)^k r_{k+1}
+    \end{align}
+    where \(r_k = \mathrm{rank}(\partial_k)\) (with \(r_0 = 0\) and \(r_{d+1} = 0\)).
+    Reindexing the last sum:
+    \[
+      \sum_{k=0}^{d} (-1)^k r_{k+1} = \sum_{k=1}^{d+1} (-1)^{k-1} r_k = -\sum_{k=1}^{d} (-1)^k r_k.
+    \]
+    Therefore the two rank sums cancel:
+    \[
+      -\sum_{k} (-1)^k r_k + \sum_k (-1)^k r_k = 0,
+    \]
+    and we are left with \(\sum (-1)^k f_k\). \(\square\)
+  </p>
+</div>
+
+<p>
+This theorem is the bridge between the combinatorial (\(f\)-vector) and the
+algebraic (Betti numbers). It guarantees that the Euler characteristic computed
+from the \(f\)-vector matches the one computed from homology, providing a
+consistency check for our implementation.
+</p>
+
+<!-- ================================================================ -->
+<h2>2.10 Computation via Column Reduction over \(\mathbb{F}_2\)</h2>
+
+<p>
+We compute the rank of the boundary matrices using <strong>column reduction</strong>
+(a variant of Gaussian elimination adapted for persistence; see Chapter 3).
+Over \(\mathbb{F}_2\), the algorithm is:
+</p>
+
+<ol>
+  <li>Represent each column as a set of row indices (the nonzero entries).</li>
+  <li>Define \(\mathrm{low}(j)\) = the largest row index in column \(j\).</li>
+  <li>For each column \(j\) from left to right: if there exists a previous column \(j'\)
+    with \(\mathrm{low}(j') = \mathrm{low}(j)\), add column \(j'\) to column \(j\)
+    (XOR over \(\mathbb{F}_2\)). Repeat until \(\mathrm{low}(j)\) is unique or the column becomes zero.</li>
+  <li>The rank equals the number of nonzero columns after reduction.</li>
+</ol>
+
+<h3>Code Stitch: Rank Computation</h3>
+
+<pre><code><span class="comment">/// Compute the rank via Gaussian elimination over Z/2Z.</span>
+<span class="comment">/// This is column reduction: we process columns left to right,</span>
+<span class="comment">/// maintaining the invariant that all pivots (lowest nonzero entries)</span>
+<span class="comment">/// are in distinct rows.</span>
+<span class="comment">///</span>
+<span class="comment">/// Over F_2, addition is XOR: cols[j][row] ^= cols[prev_col][row].</span>
+<span class="comment">/// The rank equals the number of columns with a nonzero pivot.</span>
+<span class="keyword">pub fn</span> <span class="function">rank_z2</span>(&amp;<span class="keyword">self</span>) -> <span class="type">usize</span> {
+    <span class="keyword">if</span> <span class="keyword">self</span>.rows == <span class="number">0</span> || <span class="keyword">self</span>.cols == <span class="number">0</span> {
+        <span class="keyword">return</span> <span class="number">0</span>;
+    }
+
+    <span class="comment">// Dense column-major representation for small matrices</span>
+    <span class="keyword">let mut</span> cols: <span class="type">Vec</span>&lt;<span class="type">Vec</span>&lt;<span class="type">bool</span>&gt;&gt; =
+        <span class="keyword">vec!</span>[<span class="keyword">vec!</span>[<span class="keyword">false</span>; <span class="keyword">self</span>.rows]; <span class="keyword">self</span>.cols];
+    <span class="keyword">for</span> &amp;(r, c) <span class="keyword">in</span> &amp;<span class="keyword">self</span>.entries {
+        cols[c][r] = <span class="keyword">true</span>;
+    }
+
+    <span class="comment">// Track which row has been claimed as a pivot</span>
+    <span class="keyword">let mut</span> pivots: <span class="type">Vec</span>&lt;<span class="type">Option</span>&lt;<span class="type">usize</span>&gt;&gt; = <span class="keyword">vec!</span>[<span class="type">None</span>; <span class="keyword">self</span>.rows];
+    <span class="keyword">let mut</span> rank = <span class="number">0</span>;
+
+    <span class="keyword">for</span> j <span class="keyword">in</span> <span class="number">0</span>..<span class="keyword">self</span>.cols {
+        <span class="comment">// low(j) = largest row index with cols[j][row] = true</span>
+        <span class="keyword">let</span> low = (<span class="number">0</span>..<span class="keyword">self</span>.rows).rev().find(|&amp;r| cols[j][r]);
+        <span class="keyword">if let</span> <span class="type">Some</span>(r) = low {
+            <span class="keyword">if let</span> <span class="type">Some</span>(prev_col) = pivots[r] {
+                <span class="comment">// Another column already has this pivot row.</span>
+                <span class="comment">// Add (XOR) that column to this one.</span>
+                <span class="keyword">let</span> prev = cols[prev_col].clone();
+                <span class="keyword">for</span> row <span class="keyword">in</span> <span class="number">0</span>..<span class="keyword">self</span>.rows {
+                    cols[j][row] ^= prev[row];
+                }
+                <span class="comment">// Check for new pivot after reduction</span>
+                <span class="keyword">let</span> new_low = (<span class="number">0</span>..<span class="keyword">self</span>.rows).rev().find(|&amp;r| cols[j][r]);
+                <span class="keyword">if let</span> <span class="type">Some</span>(nr) = new_low {
+                    pivots[nr] = <span class="type">Some</span>(j);
+                    rank += <span class="number">1</span>;
+                }
+            } <span class="keyword">else</span> {
+                pivots[r] = <span class="type">Some</span>(j);
+                rank += <span class="number">1</span>;
+            }
+        }
+    }
+
+    rank
+}
+</code></pre>
+
+<!-- ================================================================ -->
+<h2>2.11 The BettiNumbers Struct</h2>
+
+<h3>Code Stitch: Computing Betti Numbers</h3>
+
+<pre><code><span class="comment">/// Compute Betti numbers beta_0, beta_1, ..., beta_d from a simplicial complex</span>
+<span class="comment">/// using the rank-nullity theorem over Z/2Z (Corollary 2.14).</span>
+<span class="comment">///</span>
+<span class="comment">/// beta_k = dim(ker d_k) - dim(im d_{k+1})</span>
+<span class="comment">///        = (dim C_k - rank d_k) - rank d_{k+1}</span>
+<span class="comment">///        = f_k - rank(d_k) - rank(d_{k+1})</span>
+<span class="keyword">pub fn</span> <span class="function">compute</span>(complex: &amp;<span class="type">SimplicialComplex</span>) -> <span class="type">Self</span> {
+    <span class="keyword">let</span> d = complex.dimension();
+    <span class="keyword">if</span> d < <span class="number">0</span> { <span class="keyword">return</span> <span class="type">Self</span> { values: <span class="keyword">vec!</span>[] }; }
+
+    <span class="keyword">let mut</span> values = <span class="type">Vec</span>::new();
+
+    <span class="keyword">for</span> k <span class="keyword">in</span> <span class="number">0</span>..=d {
+        <span class="comment">// f_k = number of k-simplices = dim(C_k)</span>
+        <span class="keyword">let</span> dim_ck = complex.simplices_of_dim(k).len();
+
+        <span class="comment">// rank(d_k): rank of boundary from dimension k to k-1</span>
+        <span class="keyword">let</span> rank_dk = <span class="keyword">if</span> k > <span class="number">0</span> {
+            complex.boundary_matrix_z2(k).rank_z2()
+        } <span class="keyword">else</span> { <span class="number">0</span> };
+
+        <span class="comment">// rank(d_{k+1}): rank of boundary from dimension k+1 to k</span>
+        <span class="keyword">let</span> rank_dk1 = <span class="keyword">if</span> k < d {
+            complex.boundary_matrix_z2(k + <span class="number">1</span>).rank_z2()
+        } <span class="keyword">else</span> { <span class="number">0</span> };
+
+        <span class="comment">// beta_k = f_k - rank(d_k) - rank(d_{k+1})</span>
+        <span class="keyword">let</span> kernel_dim = dim_ck - rank_dk;
+        <span class="keyword">let</span> betti = kernel_dim - rank_dk1;
+        values.push(betti);
+    }
+
+    <span class="type">Self</span> { values }
+}
+
+<span class="comment">/// Euler characteristic from Betti numbers: chi = Sum (-1)^k beta_k</span>
+<span class="comment">/// This must agree with chi computed from the f-vector (Theorem 2.19).</span>
+<span class="keyword">pub fn</span> <span class="function">euler_characteristic</span>(&amp;<span class="keyword">self</span>) -> <span class="type">isize</span> {
+    <span class="keyword">self</span>.values.iter().enumerate()
+        .map(|(k, &amp;b)| <span class="keyword">if</span> k % <span class="number">2</span> == <span class="number">0</span> { b <span class="keyword">as</span> <span class="type">isize</span> } <span class="keyword">else</span> { -(b <span class="keyword">as</span> <span class="type">isize</span>) })
+        .sum()
+}
+</code></pre>
+
+<!-- ================================================================ -->
+<h2>2.12 Verification: The Test Suite</h2>
+
+<p>
+The tests in <code>src/topology/homology.rs</code> verify the mathematical results
+from our worked examples:
+</p>
+
+<pre><code><span class="comment">// Filled triangle: beta = (1, 0) — connected, no hole</span>
+<span class="keyword">let mut</span> k = <span class="type">SimplicialComplex</span>::new();
+k.insert_simplex(&amp;[<span class="number">0</span>, <span class="number">1</span>, <span class="number">2</span>]);
+<span class="keyword">let</span> b = <span class="type">BettiNumbers</span>::compute(&amp;k);
+<span class="keyword">assert_eq!</span>(b.b0(), <span class="number">1</span>); <span class="comment">// Example 2.15</span>
+<span class="keyword">assert_eq!</span>(b.b1(), <span class="number">0</span>);
+
+<span class="comment">// Boundary of triangle (S^1): beta = (1, 1) — connected, one loop</span>
+<span class="keyword">let mut</span> k = <span class="type">SimplicialComplex</span>::new();
+k.insert_simplex(&amp;[<span class="number">0</span>, <span class="number">1</span>]);
+k.insert_simplex(&amp;[<span class="number">1</span>, <span class="number">2</span>]);
+k.insert_simplex(&amp;[<span class="number">0</span>, <span class="number">2</span>]);
+<span class="keyword">let</span> b = <span class="type">BettiNumbers</span>::compute(&amp;k);
+<span class="keyword">assert_eq!</span>(b.b0(), <span class="number">1</span>); <span class="comment">// Example 2.16</span>
+<span class="keyword">assert_eq!</span>(b.b1(), <span class="number">1</span>);
+
+<span class="comment">// Hollow tetrahedron (S^2): beta = (1, 0, 1) — connected, one void</span>
+<span class="keyword">let mut</span> k = <span class="type">SimplicialComplex</span>::new();
+k.insert_simplex(&amp;[<span class="number">0</span>,<span class="number">1</span>,<span class="number">2</span>]); k.insert_simplex(&amp;[<span class="number">0</span>,<span class="number">1</span>,<span class="number">3</span>]);
+k.insert_simplex(&amp;[<span class="number">0</span>,<span class="number">2</span>,<span class="number">3</span>]); k.insert_simplex(&amp;[<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>]);
+<span class="keyword">let</span> b = <span class="type">BettiNumbers</span>::compute(&amp;k);
+<span class="keyword">assert_eq!</span>(b.b0(), <span class="number">1</span>);  <span class="comment">// Example 2.17</span>
+<span class="keyword">assert_eq!</span>(b.b1(), <span class="number">0</span>);
+<span class="keyword">assert_eq!</span>(b.b2(), <span class="number">1</span>);
+<span class="keyword">assert_eq!</span>(b.euler_characteristic(), <span class="number">2</span>); <span class="comment">// chi(S^2) = 2</span>
+</code></pre>
+
+<!-- ================================================================ -->
+<h2>2.13 Summary: From Complex to Sound Parameters</h2>
+
+<table>
+  <tr>
+    <th>Invariant</th>
+    <th>Formula</th>
+    <th>Geometric meaning</th>
+    <th>Audio mapping</th>
+  </tr>
+  <tr>
+    <td>\(\beta_0\)</td>
+    <td>\(\dim H_0\)</td>
+    <td>Connected components</td>
+    <td>Number of oscillator voices</td>
+  </tr>
+  <tr>
+    <td>\(\beta_1\)</td>
+    <td>\(\dim H_1\)</td>
+    <td>Independent loops</td>
+    <td>LFO modulation depth</td>
+  </tr>
+  <tr>
+    <td>\(\beta_2\)</td>
+    <td>\(\dim H_2\)</td>
+    <td>Enclosed voids</td>
+    <td>Sub-oscillator count</td>
+  </tr>
+  <tr>
+    <td>\(\chi\)</td>
+    <td>\(\sum(-1)^k\beta_k\)</td>
+    <td>Global curvature</td>
+    <td>Reverb character</td>
+  </tr>
+  <tr>
+    <td>\(\mathbf{f}\)</td>
+    <td>\((f_0, \ldots, f_d)\)</td>
+    <td>Simplex counts</td>
+    <td>Just intonation ratios</td>
+  </tr>
+</table>
+
+<!-- ================================================================ -->
+<h2>Exercises</h2>
+
+<div class="exercise">
+  <p class="label">Exercise 2.1</p>
+  <p>
+    Compute the boundary matrices \(\partial_1\) and \(\partial_2\) for the hollow
+    tetrahedron over \(\mathbb{F}_2\). Verify that \(\partial_1 \circ \partial_2 = 0\)
+    by matrix multiplication (mod 2).
+  </p>
+</div>
+
+<div class="exercise">
+  <p class="label">Exercise 2.2</p>
+  <p>
+    Find the Betti numbers of the M&ouml;bius band (triangulated as 5 vertices, 10 edges,
+    5 triangles). How does \(\mathbb{F}_2\)-homology differ from \(\mathbb{Z}\)-homology here?
+  </p>
+</div>
+
+<div class="exercise">
+  <p class="label">Exercise 2.3</p>
+  <p>
+    Prove directly (without using the Euler-Poincar&eacute; theorem) that for a
+    tree on \(n\) vertices: \(\beta_0 = 1\), \(\beta_1 = 0\), and \(\chi = 1\).
+    Hint: a tree has \(n-1\) edges, and \(\partial_1\) has rank \(n-1\).
+  </p>
+</div>
+
+<div class="exercise">
+  <p class="label">Exercise 2.4</p>
+  <p>
+    Let \(K\) be a simplicial complex with \(\beta_1 = 3\). How many independent
+    LFO modulators will the BettiDrone create? What is the modulation depth
+    per LFO? (Refer to the code in <code>betti_drone.rs</code>.)
+  </p>
+</div>
+
+<div class="exercise">
+  <p class="label">Exercise 2.5 (Smith normal form)</p>
+  <p>
+    The Smith normal form of an integer matrix \(A\) is a diagonal matrix \(S = UAV\)
+    where \(U, V\) are invertible over \(\mathbb{Z}\). Explain how the Smith normal
+    form computes homology over \(\mathbb{Z}\) (including torsion), and why we do
+    not need it when working over a field.
+  </p>
+</div>
+
+<div class="exercise">
+  <p class="label">Exercise 2.6</p>
+  <p>
+    The <strong>reduced homology</strong> \(\tilde{H}_k\) differs from ordinary homology
+    only at \(k=0\): \(\tilde{\beta}_0 = \beta_0 - 1\). In terms of sonification,
+    what would it mean to use reduced homology for the drone voice count?
+  </p>
+</div>
+
+<hr>
+
+<!-- ================================================================ -->
+<h2>Why Each Result Matters: Applications Trace</h2>
+
+<div class="remark">
+  <p class="label">Application Trace: Chain Groups (Definition 2.1)</p>
+  <p>
+    <strong>Why chain groups?</strong> The chain group \(C_k(K; \mathbb{F})\) is the free vector space
+    with basis the \(k\)-simplices of \(K\). A \(k\)-chain is a formal sum \(\sum a_i \sigma_i\)
+    of \(k\)-simplices with coefficients in \(\mathbb{F}\). This is the algebraicization of
+    geometry: instead of reasoning about geometric objects (triangles, edges), we reason about
+    their formal linear combinations.
+  </p>
+  <p>
+    <strong>Why this matters:</strong> Linear algebra is computable; geometry is not (in general).
+    By passing to chain groups, we replace the geometric question &ldquo;does this space have a
+    hole?&rdquo; with the algebraic question &ldquo;does this linear system have a nontrivial
+    kernel?&rdquo; This is the engine that makes computational topology possible.
+  </p>
+  <p>
+    <strong>In signal processing:</strong> Chain groups are signal spaces. A 0-chain assigns a
+    value to each vertex &mdash; this is a signal on a graph. A 1-chain assigns a value to each
+    edge &mdash; this is a flow. A 2-chain assigns a value to each triangle &mdash; this is a flux.
+    The Hodge decomposition of signals on simplicial complexes (Barbarossa &amp; Sardellitti 2020)
+    works in exactly these chain groups. Our sonification engine processes signals that live in
+    \(C_0\) (vertex-level audio samples).
+  </p>
+</div>
+
+<div class="remark">
+  <p class="label">Application Trace: The Boundary Operator (Definition 2.3)</p>
+  <p>
+    <strong>Why \(\partial\)?</strong> The boundary operator is the single most important map in
+    algebraic topology. It formalizes the intuitive notion of &ldquo;boundary&rdquo;: the boundary
+    of a triangle is its three edges (with orientation); the boundary of a tetrahedron is its
+    four triangular faces.
+  </p>
+  <p>
+    <strong>The key formula:</strong> \(\partial_k(\sigma) = \sum_{i=0}^{k} (-1)^i d_i(\sigma)\).
+    The alternating signs \((-1)^i\) encode orientation. To see why they&rsquo;re necessary,
+    consider the boundary of the edge \([v_0, v_1]\): it should be \(v_1 - v_0\), not \(v_0 + v_1\).
+    The sign says &ldquo;the edge goes <em>from</em> \(v_0\) <em>to</em> \(v_1\)&rdquo; &mdash;
+    it introduces directionality. Over \(\mathbb{F}_2\), signs vanish (since \(-1 = 1\)), which
+    simplifies computation at the cost of losing orientation information.
+  </p>
+  <p>
+    <strong>In physics:</strong> The boundary operator is the discrete analogue of the gradient,
+    curl, and divergence operators. Specifically:
+    \(\partial_1\) (edge &rarr; vertices) dualizes to the <strong>gradient</strong>;
+    \(\partial_2\) (triangle &rarr; edges) dualizes to the <strong>curl</strong>;
+    \(\partial_3\) (tetrahedron &rarr; triangles) dualizes to the <strong>divergence</strong>.
+    Maxwell&rsquo;s equations are statements about the boundary operator in disguise.
+  </p>
+</div>
+
+<div class="remark">
+  <p class="label">Application Trace: Cycles, Boundaries, and Homology (Definitions 2.7&ndash;2.8)</p>
+  <p>
+    <strong>Why the quotient \(H_k = Z_k / B_k\)?</strong> A cycle \(z \in Z_k = \ker\partial_k\)
+    is a chain without boundary: it &ldquo;closes up.&rdquo; A boundary \(b \in B_k = \mathrm{im}\,\partial_{k+1}\)
+    is a cycle that bounds a higher-dimensional chain: it closes up because it&rsquo;s the surface
+    of something. The homology group \(H_k\) measures cycles <em>modulo</em> boundaries: cycles that
+    close up but <em>don&rsquo;t</em> bound anything.
+  </p>
+  <p>
+    <strong>The intuition:</strong> The equator of a sphere is a cycle (closed loop) and also a
+    boundary (it bounds the northern hemisphere). So it represents the zero class in \(H_1(S^2)\).
+    But the equator of a torus is a cycle that does <em>not</em> bound any disk on the torus &mdash;
+    it represents a nontrivial class in \(H_1(T^2)\). This is the difference between a sphere
+    and a torus, captured algebraically.
+  </p>
+  <p>
+    <strong>In our engine:</strong> Every nontrivial homology class is a topological feature that
+    our instruments sonify. The <em>number</em> of independent classes (\(\beta_k\)) drives
+    oscillator counts, modulation depths, and sub-oscillator layers. The <em>representatives</em>
+    of these classes (specific cycles) could, in future work, determine the <em>spatial location</em>
+    of the sound sources in a binaural rendering.
+  </p>
+</div>
+
+<div class="remark">
+  <p class="label">Application Trace: Rank-Nullity (Theorem 2.13) and the Computation of \(\beta_k\)</p>
+  <p>
+    <strong>Why rank-nullity?</strong> The rank-nullity theorem states that for a linear map
+    \(T: V \to W\), \(\dim V = \mathrm{rank}(T) + \mathrm{nullity}(T)\). Applied to the boundary
+    operator \(\partial_k: C_k \to C_{k-1}\):
+    \[
+      \dim C_k = \mathrm{rank}(\partial_k) + \dim(\ker\partial_k) = \mathrm{rank}(\partial_k) + \dim Z_k.
+    \]
+    Since \(\beta_k = \dim Z_k - \dim B_k = \dim Z_k - \mathrm{rank}(\partial_{k+1})\), we get:
+    \[
+      \beta_k = \dim C_k - \mathrm{rank}(\partial_k) - \mathrm{rank}(\partial_{k+1}).
+    \]
+    This is computable: \(\dim C_k\) is the number of \(k\)-simplices, and \(\mathrm{rank}(\partial_k)\)
+    comes from Gaussian elimination on the boundary matrix.
+  </p>
+  <p>
+    <strong>In our engine:</strong> This is exactly what <code>BettiNumbers::compute()</code> does.
+    The formula is the bridge from topology (abstract homology groups) to linear algebra
+    (matrix ranks). Without rank-nullity, Betti numbers would require computing actual
+    quotient groups &mdash; far more complex.
+  </p>
+</div>
+
+<div class="remark">
+  <p class="label">Application Trace: Euler-Poincar&eacute; Theorem (Theorem 2.19)</p>
+  <p>
+    <strong>The theorem:</strong> \(\chi(K) = \sum_{k=0}^{d} (-1)^k f_k = \sum_{k=0}^{d} (-1)^k \beta_k\).
+    The combinatorial quantity (alternating sum of simplex counts) equals the topological quantity
+    (alternating sum of Betti numbers).
+  </p>
+  <p>
+    <strong>Why this is deep:</strong> The left side depends on the <em>specific triangulation</em>;
+    the right side depends only on the <em>topological space</em>. The theorem says these two
+    seemingly different things are equal, which means the left side is actually topologically
+    invariant. This is the oldest and most elementary bridge between combinatorics and topology.
+  </p>
+  <p>
+    <strong>As a consistency check:</strong> In our engine, <code>euler_characteristic()</code>
+    computed from the f-vector must agree with the alternating sum of Betti numbers. If they
+    disagree, there is a bug. The test <code>hollow_tetrahedron_betti</code> verifies this:
+    \(f = (4, 6, 4)\), \(\chi = 4 - 6 + 4 = 2\), and \(\beta = (1, 0, 1)\),
+    \(\chi = 1 - 0 + 1 = 2\). Agreement.
+  </p>
+</div>
+
+<div class="remark">
+  <p class="label">Application Trace: \(\partial^2 = 0\)</p>
+  <p>
+    This is not merely an algebraic curiosity. The equation \(\partial^2 = 0\) is the reason
+    <em>homology exists at all</em>. Without it, the quotient \(H_k = \ker \partial_k / \mathrm{im}\, \partial_{k+1}\)
+    would be undefined (you cannot quotient by a subgroup that isn't contained in the ambient group).
+  </p>
+  <p>
+    <strong>In our engine:</strong> The correctness of <code>BettiNumbers::compute()</code> depends on this.
+    We compute rank(\(\partial_k\)) and rank(\(\partial_{k+1}\)) and combine them via the rank-nullity theorem.
+    If \(\partial^2 \neq 0\), the formula \(\beta_k = \dim C_k - \mathrm{rank}\,\partial_k - \mathrm{rank}\,\partial_{k+1}\)
+    would give nonsense. The property guarantees that \(\mathrm{im}\,\partial_{k+1} \subseteq \ker\,\partial_k\),
+    so the subtraction is valid.
+  </p>
+  <p>
+    <strong>Broader context:</strong> The same structure appears throughout mathematics and physics:
+    de Rham cohomology (d&sup2; = 0 for exterior derivatives), Maxwell's equations
+    (\(\nabla \cdot (\nabla \times F) = 0\)), and BRST cohomology in quantum field theory.
+    Every chain complex yields a homology theory; simplicial homology is just the combinatorial instance.
+  </p>
+</div>
+
+<div class="remark">
+  <p class="label">Application Trace: Betti Numbers</p>
+  <p>
+    <strong>\(\beta_0\) (connected components):</strong> In sensor networks, \(\beta_0\) tells you if the
+    network has coverage gaps. In our engine, \(\beta_0\) determines the number of independent
+    oscillator voices in <code>BettiDrone</code>. A disconnected complex produces a <em>chord</em>;
+    a connected one produces <em>unison</em>. This is natural: disconnected components have no
+    interaction, just as independent oscillators don't share harmonics.
+  </p>
+  <p>
+    <strong>\(\beta_1\) (independent loops):</strong> In robotics, \(\beta_1\) counts the number of
+    topologically distinct paths around obstacles. In fluid dynamics, \(\beta_1\) of the domain
+    determines the space of irrotational flows (via de Rham's theorem). In our engine,
+    loops become LFO modulators &mdash; periodic modulation of pitch or amplitude. This is the
+    key insight: a loop <em>is</em> a cycle, and cycles <em>are</em> periodic, and periodicity <em>is</em> oscillation.
+    The mathematical notion of cycle literally maps to the audio notion of cyclic modulation.
+  </p>
+  <p>
+    <strong>\(\beta_2\) (enclosed voids):</strong> In materials science, \(\beta_2\) counts pores and
+    cavities. In cosmology, \(\beta_2\) of the cosmic web counts cosmic voids. In our engine,
+    voids become sub-oscillators &mdash; they add depth and body, like the resonant cavity of a
+    violin or the air column in a pipe organ. The enclosed volume literally <em>resonates</em>.
+  </p>
+</div>
+
+<div class="remark">
+  <p class="label">Application Trace: Euler Characteristic</p>
+  <p>
+    The Euler characteristic \(\chi = \sum (-1)^k \beta_k\) is the oldest topological invariant
+    (Euler, 1758, for polyhedra: \(V - E + F = 2\)). It appears in:
+  </p>
+  <ul style="margin: 0.5em 0 0.5em 1.5em;">
+    <li><strong>Gauss-Bonnet theorem:</strong> \(\int_M K\, dA = 2\pi\chi(M)\). The total curvature of a surface
+      is determined by its topology. In our engine, this becomes: the Euler characteristic controls
+      the reverb character via <code>CurvatureReverb</code>. Positive \(\chi\) (sphere-like) &rarr; short,
+      focused reverb (geodesics converge). Negative \(\chi\) (high-genus) &rarr; long, diffuse reverb
+      (geodesics diverge).</li>
+    <li><strong>Fixed-point theory:</strong> The Lefschetz fixed-point theorem guarantees that any continuous
+      map on a space with \(\chi \neq 0\) has a fixed point.</li>
+    <li><strong>Morse theory:</strong> \(\chi = \sum (-1)^k c_k\), where \(c_k\) counts critical points of
+      index \(k\). This drives our <code>MorseSynth</code>.</li>
+  </ul>
+</div>
+
+<div class="remark">
+  <p class="label">Application Trace: Rank-Nullity and \(\mathbb{F}_2\) Coefficients</p>
+  <p>
+    We work over \(\mathbb{F}_2 = \mathbb{Z}/2\mathbb{Z}\) for computational efficiency: there are no
+    signs to track, and Gaussian elimination is just XOR. The price is that we lose torsion information
+    &mdash; for example, \(H_1(\mathbb{RP}^2; \mathbb{Z}) = \mathbb{Z}/2\mathbb{Z}\), but
+    \(H_1(\mathbb{RP}^2; \mathbb{F}_2) = \mathbb{F}_2\), and the distinction matters for the projective
+    plane's non-orientability. For sonification, this is acceptable: we primarily care about Betti numbers
+    (ranks), and these coincide over \(\mathbb{F}_2\) and \(\mathbb{Q}\) for complexes arising from point
+    clouds in \(\mathbb{R}^n\) (which are always orientable). See Exercise 2.5 for the Smith normal form
+    approach needed for integer coefficients.
+  </p>
+</div>
+
+<!-- ================================================================ -->
+<h2>References</h2>
+
+<h3>Primary Textbooks</h3>
+
+<ol style="margin: 0.5rem 0 1.5rem 2rem; line-height: 2.2;">
+  <li><strong>Hatcher, A.</strong> <em>Algebraic Topology</em>. Cambridge University Press, 2002.
+    Chapter 2, &sect;2.1 develops simplicial homology; &sect;2.2 develops singular homology and proves their equivalence.
+    The proof of \(\partial^2 = 0\) is Proposition 2.3. Freely available online.
+    <br><span style="color:var(--fg-dim);">Our treatment of chain complexes and the boundary operator follows Hatcher &sect;2.1 closely.</span></li>
+
+  <li><strong>Munkres, J.R.</strong> <em>Elements of Algebraic Topology</em>. Addison-Wesley, 1984.
+    Chapters 5&ndash;8 develop homology theory systematically. Chapter 7 proves the Euler-Poincar&eacute;
+    theorem and relates Betti numbers to the Euler characteristic.
+    <br><span style="color:var(--fg-dim);">The most careful elementary treatment. Our proof sketch of \(\partial^2 = 0\) adapts Munkres's argument.</span></li>
+
+  <li><strong>Bredon, G.E.</strong> <em>Topology and Geometry</em>. Springer GTM 139, 1993. ISBN 0-387-97926-3.
+    <br><span style="color:var(--fg-dim);">Chapter IV develops homology with careful attention to coefficients and the universal coefficient theorem.
+    Consult for the relationship between \(\mathbb{Z}\) and \(\mathbb{F}_2\) coefficients.</span></li>
+</ol>
+
+<h3>Computational References</h3>
+
+<ol start="4" style="margin: 0.5rem 0 1.5rem 2rem; line-height: 2.2;">
+  <li><strong>Edelsbrunner, H. and Harer, J.L.</strong> <em>Computational Topology: An Introduction</em>. AMS, 2010.
+    Chapter IV covers homology computation; Chapter V the Smith normal form over \(\mathbb{Z}\).
+    <br><span style="color:var(--fg-dim);">Our column reduction algorithm for <code>rank_z2()</code> follows their presentation of the
+    standard persistence algorithm restricted to a single filtration step.</span></li>
+
+  <li><strong>Zomorodian, A.</strong> &ldquo;Topology for Computing.&rdquo; Cambridge, 2005. Chapter 7.
+    <br><span style="color:var(--fg-dim);">Explicit algorithms for boundary matrix construction and reduction. Complexity analysis.</span></li>
+
+  <li><strong>Dey, T.K. and Wang, Y.</strong> <em>Computational Topology for Data Analysis</em>. Cambridge, 2022. ISBN 978-1-009-09872-3.
+    <br><span style="color:var(--fg-dim);">A modern treatment combining theory and algorithms. Chapters 3&ndash;4 cover simplicial homology
+    with implementation-oriented pseudocode.</span></li>
+</ol>
+
+<h3>Classical Sources</h3>
+
+<ol start="7" style="margin: 0.5rem 0 1.5rem 2rem; line-height: 2.2;">
+  <li><strong>Poincar&eacute;, H.</strong> &ldquo;Analysis Situs.&rdquo; <em>J. &Eacute;cole Polytech.</em> 1 (1895), 1&ndash;121.
+    <br><span style="color:var(--fg-dim);">The paper that founded algebraic topology. Poincar&eacute; introduced homology groups
+    (as &ldquo;connectivity numbers&rdquo;) and proved the first version of the Euler-Poincar&eacute; formula.</span></li>
+
+  <li><strong>Noether, E.</strong> Contribution cited in Alexandroff, P. &ldquo;Simpliziale Approximationen
+    in der allgemeinen Topologie.&rdquo; <em>Math. Ann.</em> 96 (1926), 489&ndash;511.
+    <br><span style="color:var(--fg-dim);">Emmy Noether's insight (communicated through Alexandroff and Hopf) was that homology should be
+    formulated in terms of <em>groups</em> rather than mere numerical invariants. This is the conceptual
+    leap from Betti numbers to homology groups.</span></li>
+
+  <li><strong>Euler, L.</strong> &ldquo;Elementa doctrinae solidorum.&rdquo; <em>Novi Comm. Acad. Sci. Petrop.</em> 4 (1758), 109&ndash;140.
+    <br><span style="color:var(--fg-dim);">The original statement of \(V - E + F = 2\) for convex polyhedra.</span></li>
+</ol>
+
+<p style="text-align: center; margin-top: 2em;">
+  <a href="01-simplicial-complexes.html">&larr; Chapter 1: Simplicial Complexes</a>
+  &emsp;|&emsp;
+  <a href="03-persistent-homology.html">Chapter 3: Persistent Homology &rarr;</a>
+</p>
+
+<div class="footer">
+  <p>topo-sonify &middot; Chapter 2: Homology and the Boundary Operator</p>
+</div>
+
+</body>
+</html>

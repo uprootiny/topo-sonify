@@ -1,0 +1,18 @@
+# Build artifacts
+/target/
+
+# WASM build output (wasm-pack)
+/pkg/
+/web/pkg/
+*.wasm
+
+# Editor / OS
+*.swp
+*.swo
+*~
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+*.iml

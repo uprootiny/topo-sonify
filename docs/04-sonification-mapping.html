@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chapter 4: The Sonification Mapping &mdash; Topology-First Sonification</title>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --bg-code: #111118;
+    --fg: #c8c8d0;
+    --fg-dim: #6a6a7a;
+    --fg-bright: #e8e8f0;
+    --accent: #7aa2f7;
+    --accent2: #9ece6a;
+    --accent3: #bb9af7;
+    --accent4: #f7768e;
+    --accent5: #e0af68;
+    --border: #1a1a2e;
+    --link: #7aa2f7;
+    --link-hover: #9dc0ff;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: 'Berkeley Mono', 'JetBrains Mono', 'Fira Code', 'SF Mono', 'Cascadia Code', monospace;
+    font-size: 15px;
+    line-height: 1.75;
+    max-width: 52em;
+    margin: 0 auto;
+    padding: 3em 2em 6em;
+  }
+  h1, h2, h3, h4 { color: var(--fg-bright); font-weight: 600; margin-top: 2.5em; margin-bottom: 0.75em; }
+  h1 { font-size: 1.8em; border-bottom: 2px solid var(--accent); padding-bottom: 0.4em; margin-top: 0; }
+  h2 { font-size: 1.4em; border-bottom: 1px solid var(--border); padding-bottom: 0.3em; }
+  h3 { font-size: 1.15em; color: var(--accent3); }
+  h4 { font-size: 1.0em; color: var(--accent5); }
+  p { margin-bottom: 1em; }
+  a { color: var(--link); text-decoration: none; border-bottom: 1px solid transparent; transition: border-color 0.2s; }
+  a:hover { color: var(--link-hover); border-bottom-color: var(--link-hover); }
+  ul, ol { margin-bottom: 1em; padding-left: 1.5em; }
+  li { margin-bottom: 0.35em; }
+  blockquote { border-left: 3px solid var(--accent3); padding: 0.75em 1.25em; margin: 1.5em 0; background: rgba(187,154,247,0.05); font-style: italic; }
+  pre { background: var(--bg-code); border: 1px solid var(--border); border-radius: 4px; padding: 1.25em; overflow-x: auto; margin: 1.5em 0; font-size: 0.9em; line-height: 1.6; }
+  code { background: var(--bg-code); padding: 0.15em 0.4em; border-radius: 3px; font-size: 0.92em; }
+  pre code { background: none; padding: 0; }
+  .keyword { color: var(--accent3); }
+  .type { color: var(--accent); }
+  .string { color: var(--accent2); }
+  .comment { color: var(--fg-dim); font-style: italic; }
+  .number { color: var(--accent5); }
+  .function { color: var(--accent); }
+  .nav { display: flex; justify-content: space-between; align-items: center; padding: 1em 0; border-bottom: 1px solid var(--border); margin-bottom: 2em; flex-wrap: wrap; gap: 0.5em; }
+  .nav a { color: var(--fg-dim); font-size: 0.85em; padding: 0.3em 0.6em; border: 1px solid var(--border); border-radius: 3px; transition: all 0.2s; }
+  .nav a:hover { color: var(--accent); border-color: var(--accent); }
+  .nav a.active { color: var(--accent); border-color: var(--accent); }
+  .definition { border-left: 3px solid var(--accent); padding: 1em 1.25em; margin: 1.5em 0; background: rgba(122,162,247,0.04); }
+  .definition .label { color: var(--accent); font-weight: 600; margin-bottom: 0.5em; }
+  .theorem { border-left: 3px solid var(--accent2); padding: 1em 1.25em; margin: 1.5em 0; background: rgba(158,206,106,0.04); }
+  .theorem .label { color: var(--accent2); font-weight: 600; margin-bottom: 0.5em; }
+  .proof { border-left: 3px solid var(--fg-dim); padding: 1em 1.25em; margin: 1.5em 0; background: rgba(106,106,122,0.04); }
+  .proof .label { color: var(--fg-dim); font-weight: 600; margin-bottom: 0.5em; }
+  .remark { border-left: 3px solid var(--accent5); padding: 1em 1.25em; margin: 1.5em 0; background: rgba(224,175,104,0.04); }
+  .remark .label { color: var(--accent5); font-weight: 600; margin-bottom: 0.5em; }
+  .example { border-left: 3px solid var(--accent4); padding: 1em 1.25em; margin: 1.5em 0; background: rgba(247,118,142,0.04); }
+  .example .label { color: var(--accent4); font-weight: 600; margin-bottom: 0.5em; }
+  .exercise { border-left: 3px solid var(--accent2); padding: 1em 1.25em; margin: 1em 0; background: rgba(158,206,106,0.03); }
+  .exercise .label { color: var(--accent2); font-weight: 600; margin-bottom: 0.5em; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 3em 0; }
+  .footer { margin-top: 4em; padding-top: 1.5em; border-top: 1px solid var(--border); color: var(--fg-dim); font-size: 0.85em; text-align: center; }
+  table { border-collapse: collapse; margin: 1.5em 0; width: 100%; }
+  th, td { padding: 0.5em 0.8em; border: 1px solid var(--border); text-align: left; font-size: 0.92em; }
+  th { background: var(--bg-code); color: var(--accent); text-align: center; }
+  .signal-chain { background: var(--bg-code); border: 1px solid var(--border); border-radius: 4px; padding: 2em; margin: 2em 0; font-size: 0.85em; line-height: 1.5; overflow-x: auto; white-space: pre; }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a href="index.html">Home</a>
+  <a href="01-simplicial-complexes.html">Ch.1 Simplices</a>
+  <a href="02-homology.html">Ch.2 Homology</a>
+  <a href="03-persistent-homology.html">Ch.3 Persistence</a>
+  <a class="active" href="04-sonification-mapping.html">Ch.4 Sonification</a>
+  <a href="05-storyboard.html">Storyboard</a>
+</nav>
+
+<h1>Chapter 4: The Sonification Mapping</h1>
+<p style="color: var(--fg-dim);">From topological invariants to audio synthesis</p>
+
+<!-- ================================================================ -->
+<h2>4.1 The Fundamental Question</h2>
+
+<p>
+Given a simplicial complex \(K\) with its Betti numbers \(\beta_0, \beta_1, \beta_2\),
+\(f\)-vector \(\mathbf{f}\), Euler characteristic \(\chi\), and persistence diagram
+\(\mathrm{Dgm}(K)\), we must design a mapping:
+\[
+  \Phi : \{\text{topological invariants}\} \longrightarrow L^2([0, T])
+\]
+from the space of invariants to the space of audio signals. The mapping must be:
+</p>
+<ul>
+  <li><strong>Faithful</strong>: distinct topological structures should produce perceptually distinct sounds.</li>
+  <li><strong>Continuous</strong>: small changes to the topology should produce small changes to the sound
+    (guaranteed by the stability theorem for persistence-dependent parameters).</li>
+  <li><strong>Interpretable</strong>: a trained listener should be able to infer topological properties
+    from the sound alone.</li>
+</ul>
+
+<!-- ================================================================ -->
+<h2>4.2 Signal Spaces</h2>
+
+<div class="definition">
+  <p class="label">Definition 4.1 (Signal space)</p>
+  <p>
+    The space of square-integrable audio signals on \([0, T]\) is the Hilbert space:
+    \[
+      L^2([0, T]) = \left\{ s : [0, T] \to \mathbb{R} \;\bigg|\; \int_0^T |s(t)|^2 \, dt < \infty \right\}
+    \]
+    with inner product \(\langle s_1, s_2 \rangle = \int_0^T s_1(t) s_2(t) \, dt\).
+    The Fourier basis \(\{e^{2\pi i n t / T}\}_{n \in \mathbb{Z}}\) provides an
+    orthonormal basis, and the Fourier coefficients \(\hat{s}(n)\) give the
+    frequency-domain representation.
+  </p>
+</div>
+
+<p>
+In discrete time (sample rate \(f_s = 44100\) Hz), our signals live in
+\(\mathbb{R}^N\) where \(N = f_s \cdot T\). The sonification mapping
+\(\Phi\) is implemented as a real-time function that produces one sample at a time:
+</p>
+
+<pre><code><span class="comment">/// Generate the next audio sample through the full signal chain.</span>
+<span class="comment">/// This is the core of Phi: invariants -> L^2([0,T]).</span>
+<span class="keyword">pub fn</span> <span class="function">next_sample</span>(&amp;<span class="keyword">mut self</span>) -> <span class="type">f64</span> {
+    <span class="comment">// Instrument mix (topology -> oscillation)</span>
+    <span class="keyword">let</span> drone_out = <span class="keyword">self</span>.drone.next_sample() * <span class="keyword">self</span>.drone_level;
+    <span class="keyword">let</span> pluck_out = <span class="keyword">self</span>.pluck.next_sample() * <span class="keyword">self</span>.pluck_level;
+    <span class="keyword">let</span> morse_out = <span class="keyword">self</span>.morse.next_sample() * <span class="keyword">self</span>.morse_level;
+
+    <span class="keyword">let</span> dry = drone_out + pluck_out + morse_out;
+
+    <span class="comment">// Effects chain (topology -> spatial/spectral processing)</span>
+    <span class="keyword">let</span> distorted = <span class="keyword">self</span>.distortion.process(dry);
+    <span class="keyword">let</span> delayed = <span class="keyword">self</span>.delay.process(distorted);
+    <span class="keyword">let</span> reverbed = <span class="keyword">self</span>.reverb.process(delayed);
+
+    (reverbed * <span class="keyword">self</span>.master_volume).clamp(-<span class="number">1.0</span>, <span class="number">1.0</span>)
+}
+</code></pre>
+
+<!-- ================================================================ -->
+<h2>4.3 The Combinatorial Laplacian and Spectral Graph Theory</h2>
+
+<p>
+The mapping between topology and sound has a deep mathematical foundation in
+spectral graph theory. The <strong>combinatorial Laplacian</strong> of a simplicial complex
+provides the bridge.
+</p>
+
+<div class="definition">
+  <p class="label">Definition 4.2 (Combinatorial \(k\)-Laplacian)</p>
+  <p>
+    The <strong>\(k\)-th combinatorial Laplacian</strong> (or Hodge Laplacian) of a simplicial
+    complex \(K\) is the linear operator:
+    \[
+      L_k = \partial_{k+1} \partial_{k+1}^T + \partial_k^T \partial_k : C_k \to C_k.
+    \]
+    This is a positive semidefinite operator. Its kernel is isomorphic to the
+    homology group:
+    \[
+      \ker(L_k) \cong H_k(K; \mathbb{R}).
+    \]
+    This is the <strong>discrete Hodge theorem</strong>.
+  </p>
+</div>
+
+<div class="theorem">
+  <p class="label">Theorem 4.3 (Discrete Hodge decomposition)</p>
+  <p>
+    Every \(k\)-chain \(c \in C_k\) has a unique orthogonal decomposition:
+    \[
+      c = c_{\mathrm{harm}} + \partial_{k+1} c' + \partial_k^T c'',
+    \]
+    where \(c_{\mathrm{harm}} \in \ker(L_k)\) is a <strong>harmonic chain</strong> (a cycle that
+    is "as smooth as possible"), \(\partial_{k+1} c' \in \mathrm{im}(\partial_{k+1})\) is a
+    boundary component, and \(\partial_k^T c'' \in \mathrm{im}(\partial_k^T)\) is a
+    "coboundary" component.
+  </p>
+</div>
+
+<p>
+The eigenvalues of \(L_k\) are non-negative: \(0 = \lambda_0 \leq \lambda_1 \leq \cdots\).
+The number of zero eigenvalues equals \(\beta_k\). The nonzero eigenvalues determine
+the "natural frequencies" of oscillation on the complex&mdash;exactly analogous to
+the eigenfrequencies of a vibrating membrane or string.
+</p>
+
+<div class="remark">
+  <p class="label">Remark 4.4</p>
+  <p>
+    For the graph Laplacian (\(k = 0\)), \(L_0 = D - A\) where \(D\) is the degree matrix
+    and \(A\) is the adjacency matrix. The smallest nonzero eigenvalue \(\lambda_1\)
+    (the <strong>Fiedler value</strong> or algebraic connectivity) measures how well-connected
+    the graph is. In our sonification, higher connectivity produces richer harmonic
+    content because the eigenmodes are more densely spaced.
+  </p>
+</div>
+
+<!-- ================================================================ -->
+<h2>4.4 The Mapping Design</h2>
+
+<p>
+We now describe each component of the mapping in detail.
+</p>
+
+<h3>4.4.1 \(\beta_0 \to\) Oscillator Count (BettiDrone)</h3>
+
+<div class="definition">
+  <p class="label">Mapping M1: Components to Voices</p>
+  <p>
+    Each connected component of \(K\) is an independent topological entity. The
+    BettiDrone creates \(\max(\beta_0, 1)\) independent oscillator voices. Each voice
+    is a sawtooth oscillator (maximum spectral content: all harmonics) with slight
+    detuning \(\Delta f_i = f_0 \cdot (1 + 0.002 \cdot i)\) to create the
+    chorus effect of beating frequencies.
+  </p>
+</div>
+
+<h3>4.4.2 \(\beta_1 \to\) Modulation Depth (LFOs)</h3>
+
+<div class="definition">
+  <p class="label">Mapping M2: Loops to Modulation</p>
+  <p>
+    Each independent loop in \(H_1(K)\) creates a low-frequency oscillator (LFO).
+    The \(i\)-th LFO has frequency \(f_{\mathrm{LFO},i} = 0.1 + 0.07i\) Hz
+    (sub-audio rates). The modulation depth of each LFO is
+    \(m_i = 0.003 \cdot (1 + i)\), applied as frequency modulation to the drone:
+    \[
+      f_{\mathrm{mod}}(t) = f_0 \cdot \left(1 + \sum_{i=0}^{\beta_1 - 1} m_i \sin(2\pi f_{\mathrm{LFO},i} \cdot t)\right).
+    \]
+    With \(\beta_1 = 0\), the drone is static. With \(\beta_1 = 1\), it
+    gently vibrates. With \(\beta_1 \geq 2\), complex modulation patterns emerge
+    from the interference of multiple LFOs at incommensurate frequencies.
+  </p>
+</div>
+
+<h3>4.4.3 \(\beta_2 \to\) Sub-Oscillators (Resonant Cavities)</h3>
+
+<div class="definition">
+  <p class="label">Mapping M3: Voids to Sub-Oscillators</p>
+  <p>
+    Each enclosed void (element of \(H_2(K)\)) adds a sine sub-oscillator at
+    \(f_0 / 2\) (one octave below), with slight detuning between subs.
+    The acoustic metaphor: a void is an enclosed resonant cavity, like the body
+    of a guitar or the bell of a trumpet. These cavities reinforce the fundamental
+    and its sub-harmonics.
+  </p>
+</div>
+
+<h3>4.4.4 \(f\)-Vector \(\to\) Just Intonation Ratios</h3>
+
+<div class="definition">
+  <p class="label">Mapping M4: Simplex Counts to Harmony</p>
+  <p>
+    The \(f\)-vector \((f_0, f_1, \ldots, f_d)\) encodes combinatorial information
+    at each dimension. The ratios between consecutive entries determine just
+    intonation intervals:
+    \[
+      r_k = \frac{f_k}{f_{k-1}} \quad \text{for } k = 1, \ldots, d.
+    \]
+    These ratios tune the oscillator voices relative to the base frequency.
+  </p>
+</div>
+
+<div class="example">
+  <p class="label">Example 4.5</p>
+  <p>
+    The hollow tetrahedron (\(S^2\)) has \(\mathbf{f} = (4, 6, 4)\):
+  </p>
+  <ul>
+    <li>\(r_1 = 6/4 = 3/2\) &mdash; the perfect fifth.</li>
+    <li>\(r_2 = 4/6 = 2/3\) &mdash; the inverted fifth (a perfect fourth below).</li>
+  </ul>
+  <p>
+    A complex with \(\mathbf{f} = (5, 10, 10, 5)\) (the boundary of the 4-simplex)
+    yields ratios \(2, 1, 1/2\): an octave, a unison, and a sub-octave.
+  </p>
+</div>
+
+<h3>Code Stitch: f-Vector to Ratios</h3>
+
+<pre><code><span class="comment">/// Set the just-intonation ratios from the f-vector of the complex.</span>
+<span class="comment">/// Mapping M4: f_vector -> harmonic ratios for oscillator tuning.</span>
+<span class="comment">///</span>
+<span class="comment">/// The ratio r_k = f_k / f_{k-1} becomes the frequency multiplier</span>
+<span class="comment">/// for the k-th oscillator voice.</span>
+<span class="keyword">pub fn</span> <span class="function">set_ratios_from_f_vector</span>(&amp;<span class="keyword">mut self</span>, f_vector: &amp;[<span class="type">usize</span>]) {
+    <span class="keyword">self</span>.ratios.clear();
+    <span class="keyword">self</span>.ratios.push(<span class="number">1.0</span>); <span class="comment">// fundamental always at ratio 1</span>
+    <span class="keyword">for</span> window <span class="keyword">in</span> f_vector.windows(<span class="number">2</span>) {
+        <span class="keyword">if</span> window[<span class="number">0</span>] > <span class="number">0</span> {
+            <span class="comment">// r_k = f_k / f_{k-1} (just intonation ratio)</span>
+            <span class="keyword">self</span>.ratios.push(window[<span class="number">1</span>] <span class="keyword">as</span> <span class="type">f64</span> / window[<span class="number">0</span>] <span class="keyword">as</span> <span class="type">f64</span>);
+        }
+    }
+
+    <span class="comment">// Retune oscillators according to computed ratios</span>
+    <span class="keyword">for</span> (i, osc) <span class="keyword">in</span> <span class="keyword">self</span>.fundamentals.iter_mut().enumerate() {
+        <span class="keyword">let</span> ratio = <span class="keyword">self</span>.ratios.get(i % <span class="keyword">self</span>.ratios.len())
+            .copied().unwrap_or(<span class="number">1.0</span>);
+        osc.set_frequency(<span class="keyword">self</span>.base_freq * ratio);
+    }
+}
+</code></pre>
+
+<!-- ================================================================ -->
+<h3>4.4.5 \(\chi \to\) Reverb Character (Gauss-Bonnet)</h3>
+
+<div class="theorem">
+  <p class="label">Theorem 4.6 (Gauss-Bonnet, discrete version)</p>
+  <p>
+    For a closed orientable surface \(\Sigma\), the Gauss-Bonnet theorem states:
+    \[
+      \int_\Sigma K \, dA = 2\pi \chi(\Sigma),
+    \]
+    where \(K\) is the Gaussian curvature. The Euler characteristic is a proxy for
+    total curvature.
+  </p>
+</div>
+
+<div class="definition">
+  <p class="label">Mapping M5: Curvature to Reverb</p>
+  <p>
+    The CurvatureReverb effect uses \(\chi\) to determine the reverb character:
+  </p>
+  <ul>
+    <li>\(\chi > 0\) (positive curvature, sphere-like): short RT60, bright damping.
+      Geodesics on a sphere converge, so reflections focus quickly.</li>
+    <li>\(\chi = 0\) (flat, torus-like): medium RT60. Geodesics stay parallel.</li>
+    <li>\(\chi < 0\) (negative curvature, high-genus): long RT60, dark damping.
+      Geodesics on a hyperbolic surface diverge, so reflections scatter widely.</li>
+  </ul>
+</div>
+
+<h3>Code Stitch: CurvatureReverb</h3>
+
+<pre><code><span class="comment">/// Create a reverb parameterized by the Euler characteristic.</span>
+<span class="comment">/// Implements Mapping M5 via the Gauss-Bonnet connection.</span>
+<span class="comment">///</span>
+<span class="comment">/// chi > 0 -> positive curvature -> short, bright reverb</span>
+<span class="comment">/// chi = 0 -> flat -> medium reverb</span>
+<span class="comment">/// chi < 0 -> negative curvature -> long, dark reverb</span>
+<span class="keyword">pub fn</span> <span class="function">from_euler_characteristic</span>(chi: <span class="type">isize</span>, sample_rate: <span class="type">f64</span>) -> <span class="type">Self</span> {
+    <span class="comment">// Map curvature to RT60 (reverb time)</span>
+    <span class="keyword">let</span> rt60 = <span class="keyword">match</span> chi {
+        c <span class="keyword">if</span> c > <span class="number">0</span> => <span class="number">0.5</span> + <span class="number">0.3</span> / c <span class="keyword">as</span> <span class="type">f64</span>,  <span class="comment">// short</span>
+        <span class="number">0</span> => <span class="number">1.5</span>,                              <span class="comment">// medium</span>
+        c => <span class="number">1.5</span> + <span class="number">0.5</span> * (-c <span class="keyword">as</span> <span class="type">f64</span>),          <span class="comment">// long</span>
+    };
+
+    <span class="comment">// Damping coefficient: bright for spheres, dark for high genus</span>
+    <span class="keyword">let</span> damping = <span class="keyword">match</span> chi {
+        c <span class="keyword">if</span> c > <span class="number">0</span> => <span class="number">0.2</span>,  <span class="comment">// bright</span>
+        <span class="number">0</span> => <span class="number">0.5</span>,
+        _ => <span class="number">0.8</span>,              <span class="comment">// dark</span>
+    };
+
+    <span class="comment">// Comb filter delays: mutually prime for maximum density</span>
+    <span class="comment">// (Schroeder reverb design — 8 parallel comb filters)</span>
+    <span class="keyword">let</span> base_delay = (rt60 * sample_rate * <span class="number">0.03</span>) <span class="keyword">as</span> <span class="type">usize</span>;
+    <span class="keyword">let</span> comb_delays = [
+        base_delay + <span class="number">7</span>, base_delay + <span class="number">23</span>, base_delay + <span class="number">41</span>,
+        base_delay + <span class="number">59</span>, base_delay + <span class="number">73</span>, base_delay + <span class="number">97</span>,
+        base_delay + <span class="number">113</span>, base_delay + <span class="number">131</span>,
+    ];
+    <span class="comment">// ...</span>
+}
+</code></pre>
+
+<!-- ================================================================ -->
+<h3>4.4.6 Persistence Pairs \(\to\) Delay Taps</h3>
+
+<div class="definition">
+  <p class="label">Mapping M6: Persistence as Temporal Echo</p>
+  <p>
+    Each persistence pair \((b, d, k)\) maps to a delay tap in the PersistenceDelay:
+    \[
+      \text{delay\_time}_i = \frac{b_i}{\varepsilon_{\max}} \cdot T_{\max},
+      \quad
+      \text{feedback}_i = \frac{d_i - b_i}{\varepsilon_{\max}},
+      \quad
+      \text{level}_i = \frac{1}{1 + k_i}.
+    \]
+    Long-lived features (\(d - b\) large) produce more feedback (longer echoes).
+    Higher-dimensional features (\(k\) large) are quieter.
+  </p>
+</div>
+
+<h3>Code Stitch: PersistenceDelay</h3>
+
+<pre><code><span class="comment">/// Configure delay taps from persistence pairs.</span>
+<span class="comment">/// Implements Mapping M6: (birth, death, dim) -> (delay, feedback, level).</span>
+<span class="keyword">pub fn</span> <span class="function">set_from_persistence</span>(
+    &amp;<span class="keyword">mut self</span>,
+    pairs: &amp;[(<span class="type">f64</span>, <span class="type">f64</span>, <span class="type">usize</span>)],  <span class="comment">// (birth, death, dim)</span>
+    max_filtration: <span class="type">f64</span>,
+) {
+    <span class="keyword">self</span>.taps.clear();
+    <span class="keyword">for</span> &amp;(birth, death, dim) <span class="keyword">in</span> pairs {
+        <span class="keyword">let</span> persistence = <span class="keyword">if</span> death.is_infinite() {
+            max_filtration
+        } <span class="keyword">else</span> { death - birth };
+
+        <span class="comment">// birth -> delay time (proportional to filtration value)</span>
+        <span class="keyword">let</span> delay_secs = (birth / max_filtration) * max_delay;
+        <span class="keyword">let</span> delay_samples = (delay_secs * sample_rate) <span class="keyword">as</span> <span class="type">usize</span>;
+
+        <span class="comment">// persistence -> feedback (long-lived features echo longer)</span>
+        <span class="keyword">let</span> feedback = (persistence / max_filtration).clamp(<span class="number">0.0</span>, <span class="number">0.95</span>);
+
+        <span class="comment">// dimension -> level (higher dim = quieter)</span>
+        <span class="keyword">let</span> level = <span class="number">1.0</span> / (<span class="number">1.0</span> + dim <span class="keyword">as</span> <span class="type">f64</span>);
+
+        <span class="keyword">self</span>.taps.push(<span class="type">DelayTap</span> { delay_samples, feedback, level });
+    }
+}
+</code></pre>
+
+<!-- ================================================================ -->
+<h3>4.4.7 Persistence \(\to\) Morse Score (MorseSynth)</h3>
+
+<div class="definition">
+  <p class="label">Mapping M7: Filtration as Musical Score</p>
+  <p>
+    The filtration parameter \(\varepsilon\) is mapped to time, and each birth/death event
+    becomes a musical event:
+    \[
+      t_{\text{event}} = \varepsilon \cdot s, \quad
+      f_{\text{note}} = f_{\min} \cdot (f_{\max}/f_{\min})^{\varepsilon/\varepsilon_{\max}},
+    \]
+    where \(s\) is a time-scale factor and the frequency mapping is logarithmic
+    (perceptually uniform pitch spacing).
+  </p>
+</div>
+
+<p>
+The waveform of each voice is determined by the homological dimension:
+</p>
+<ul>
+  <li>\(H_0\) births (component appears): <strong>sine</strong> wave &mdash; pure, simple, the genesis of a voice.</li>
+  <li>\(H_1\) births (loop forms): <strong>triangle</strong> wave &mdash; periodic but angular, reflecting the cycle.</li>
+  <li>\(H_2\) births (void closes): <strong>sawtooth</strong> wave &mdash; rich harmonics, the interior resonance.</li>
+  <li>Higher dimensions: <strong>square</strong> wave &mdash; maximum harmonic content.</li>
+</ul>
+
+<!-- ================================================================ -->
+<h2>4.5 The Karplus-Strong Algorithm</h2>
+
+<p>
+The SimplicialPluck instrument uses the Karplus-Strong algorithm, which is a
+discrete approximation to the 1D wave equation.
+</p>
+
+<div class="definition">
+  <p class="label">Definition 4.7 (Wave equation)</p>
+  <p>
+    The 1D wave equation on an interval \([0, L]\) with fixed endpoints:
+    \[
+      \frac{\partial^2 u}{\partial t^2} = c^2 \frac{\partial^2 u}{\partial x^2}, \quad
+      u(0, t) = u(L, t) = 0.
+    \]
+    The eigenmodes are \(u_n(x,t) = \sin(n\pi x / L) \cos(n\pi c t / L)\),
+    with frequencies \(f_n = nc / (2L)\). This is the harmonic series.
+  </p>
+</div>
+
+<div class="definition">
+  <p class="label">Definition 4.8 (Karplus-Strong)</p>
+  <p>
+    The Karplus-Strong algorithm approximates a plucked string using a delay line
+    of length \(N = f_s / f_0\) samples (where \(f_0\) is the desired fundamental
+    frequency) with a lowpass filter in the feedback loop:
+    \[
+      y[n] = \frac{y[n - N] + y[n - N + 1]}{2} \cdot \alpha,
+    \]
+    where \(\alpha < 1\) is the damping coefficient. The delay line is initialized
+    with the excitation signal (noise for a string pluck). The averaging operation
+    acts as a first-order lowpass filter, which models the energy loss of higher
+    harmonics&mdash;exactly what happens in a real vibrating string.
+  </p>
+</div>
+
+<p>
+Our modification: instead of initializing the delay line with white noise, we use
+an excitation signal whose harmonic content is shaped by the \(f\)-vector:
+</p>
+
+<pre><code><span class="comment">/// Excite the string with f-vector-weighted harmonics.</span>
+<span class="comment">/// Instead of pure noise, the excitation is:</span>
+<span class="comment">///   x[n] = 0.7 * Sum_k (f_k/total) * sin(2*pi*(k+1)*n/N) + 0.3 * noise[n]</span>
+<span class="comment">///</span>
+<span class="comment">/// This seeds the delay line with energy at f-vector-derived harmonics,</span>
+<span class="comment">/// so the pluck sound reflects the combinatorial structure of K.</span>
+<span class="keyword">pub fn</span> <span class="function">pluck</span>(&amp;<span class="keyword">mut self</span>, f_vector: &amp;[<span class="type">usize</span>]) {
+    <span class="keyword">self</span>.active = <span class="keyword">true</span>;
+    <span class="keyword">let</span> total: <span class="type">usize</span> = f_vector.iter().sum::&lt;<span class="type">usize</span>&gt;().max(<span class="number">1</span>);
+
+    <span class="keyword">for</span> line <span class="keyword">in</span> &amp;<span class="keyword">mut self</span>.delay_lines {
+        <span class="keyword">for</span> (i, sample) <span class="keyword">in</span> line.iter_mut().enumerate() {
+            <span class="keyword">let mut</span> val = <span class="number">0.0</span>;
+            <span class="keyword">for</span> (k, &amp;fk) <span class="keyword">in</span> f_vector.iter().enumerate() {
+                <span class="keyword">let</span> weight = fk <span class="keyword">as</span> <span class="type">f64</span> / total <span class="keyword">as</span> <span class="type">f64</span>;
+                <span class="keyword">let</span> harmonic = (k + <span class="number">1</span>) <span class="keyword">as</span> <span class="type">f64</span>;
+                val += weight * (TAU * harmonic * i <span class="keyword">as</span> <span class="type">f64</span>
+                    / line.len() <span class="keyword">as</span> <span class="type">f64</span>).sin();
+            }
+            <span class="comment">// Add noise for naturalness</span>
+            <span class="keyword">let</span> noise = <span class="comment">/* LCG noise */</span>;
+            *sample = val * <span class="number">0.7</span> + noise * <span class="number">0.3</span>;
+        }
+    }
+}
+</code></pre>
+
+<!-- ================================================================ -->
+<h2>4.6 Biquad Filters and Pole/Zero Topology</h2>
+
+<div class="definition">
+  <p class="label">Definition 4.9 (Biquad transfer function)</p>
+  <p>
+    A biquad filter has the transfer function:
+    \[
+      H(z) = \frac{b_0 + b_1 z^{-1} + b_2 z^{-2}}{1 + a_1 z^{-1} + a_2 z^{-2}},
+    \]
+    which has 2 zeros and 2 poles in the \(z\)-plane (\(\mathbb{C}\) or the Riemann
+    sphere \(\hat{\mathbb{C}} \cong S^2\)). The filter is stable when all poles lie
+    inside the unit disk \(|z| < 1\).
+  </p>
+</div>
+
+<p>
+The topology of the pole/zero configuration determines the filter character.
+A pole near the unit circle at angle \(\theta\) creates a resonance at frequency
+\(f = \theta f_s / (2\pi)\). Moving the pole closer to the circle increases the
+resonance (sharper peak in the frequency response).
+</p>
+
+<p>
+Our <code>TopologicalFilter</code> computes biquad coefficients from cutoff frequency
+and resonance (Q factor), which are in turn derived from topological parameters.
+The coefficient computation maps the parameter space \((\omega_c, Q) \in \mathbb{R}^+ \times \mathbb{R}^+\)
+to the coefficient space \((b_0, b_1, b_2, a_1, a_2) \in \mathbb{R}^5\)&mdash;a smooth map
+between manifolds.
+</p>
+
+<!-- ================================================================ -->
+<h2>4.7 Waveshaping as a Nonlinear Map</h2>
+
+<div class="definition">
+  <p class="label">Definition 4.10 (Waveshaping)</p>
+  <p>
+    A <strong>waveshaper</strong> is a memoryless nonlinear function \(g : \mathbb{R} \to \mathbb{R}\)
+    applied sample-by-sample: \(y[n] = g(x[n])\). If the input is a pure sine wave
+    \(x[n] = A\sin(\omega n)\), the output can be expanded in a Chebyshev series:
+    \[
+      g(A \sin\theta) = \sum_{k=0}^{\infty} c_k(A) \sin(k\theta),
+    \]
+    where the coefficients \(c_k(A)\) determine the harmonic content of the output.
+    The waveshaping function determines which harmonics are generated.
+  </p>
+</div>
+
+<p>
+The BettiDistortion uses a multi-stage <strong>wavefolding</strong> function: the input is
+passed through \(\beta_0\) stages of the sine wavefolder \(g(x) = \sin(\pi x / 2)\),
+which maps \(\mathbb{R}\) to \([-1, 1]\) with periodic wrapping. Additional asymmetric
+saturation (controlled by \(\beta_2\)) introduces even harmonics.
+</p>
+
+<pre><code><span class="comment">/// Multi-stage wavefolding driven by Betti numbers.</span>
+<span class="comment">/// beta_0 stages of sine wavefolding: g(x) = sin(pi*x/2).</span>
+<span class="comment">/// Each fold adds harmonic complexity (new overtones).</span>
+<span class="keyword">pub fn</span> <span class="function">process</span>(&amp;<span class="keyword">mut self</span>, input: <span class="type">f64</span>) -> <span class="type">f64</span> {
+    <span class="keyword">let</span> driven = (input + <span class="keyword">self</span>.prev_sample * <span class="keyword">self</span>.feedback) * <span class="keyword">self</span>.drive;
+
+    <span class="keyword">let mut</span> x = driven;
+    <span class="keyword">for</span> _ <span class="keyword">in</span> <span class="number">0</span>..<span class="keyword">self</span>.fold_stages {
+        <span class="comment">// Sine wavefolder: R -> [-1, 1] with wrapping</span>
+        x = (x * FRAC_PI_2).sin();
+    }
+
+    <span class="comment">// Asymmetric saturation from beta_2 (voids -> even harmonics)</span>
+    <span class="keyword">if</span> <span class="keyword">self</span>.asymmetry > <span class="number">0.0</span> {
+        x = <span class="keyword">if</span> x >= <span class="number">0.0</span> { x.tanh() }
+            <span class="keyword">else</span> { (x * (<span class="number">1.0</span> + <span class="keyword">self</span>.asymmetry)).tanh()
+                   / (<span class="number">1.0</span> + <span class="keyword">self</span>.asymmetry) };
+    }
+
+    <span class="keyword">self</span>.prev_sample = x;
+    x
+}
+</code></pre>
+
+<!-- ================================================================ -->
+<h2>4.8 The Oscillator: Waveforms as Maps \(S^1 \to \mathbb{R}\)</h2>
+
+<p>
+A waveform is a periodic function of period \(T = 1/f\), equivalently a map from
+the circle \(S^1\) to the reals. Different waveforms correspond to different
+embeddings of the circle:
+</p>
+
+<ul>
+  <li><strong>Sine</strong>: the projection of the standard embedding \(S^1 \hookrightarrow \mathbb{R}^2\)
+    onto the \(y\)-axis. Contains only the fundamental frequency. Topologically, the
+    simplest periodic waveform.</li>
+  <li><strong>Sawtooth</strong>: a map \(S^1 \to \mathbb{R}\) with a single discontinuity (jump).
+    Contains all harmonics \(1/n\). The discontinuity makes it a degree-1 map
+    between circles (wrapping once around the range).</li>
+  <li><strong>Square</strong>: two discontinuities, only odd harmonics (\(1, 3, 5, \ldots\)).
+    The \(\mathbb{Z}/2\mathbb{Z}\) symmetry \(f(t + T/2) = -f(t)\) forces even harmonics
+    to vanish&mdash;a spectral consequence of a topological symmetry.</li>
+  <li><strong>Triangle</strong>: piecewise linear, \(1/n^2\) harmonic decay. Homeomorphic
+    to the sine as a map \(S^1 \to \mathbb{R}\), but not smoothly so&mdash;the corners
+    create higher harmonics.</li>
+</ul>
+
+<pre><code><span class="comment">/// PolyBLEP: polynomial band-limited step function for anti-aliasing.</span>
+<span class="comment">/// At discontinuities (sawtooth jump, square transitions), the naive</span>
+<span class="comment">/// waveform aliases. PolyBLEP subtracts a polynomial correction that</span>
+<span class="comment">/// "smooths" the discontinuity while preserving the spectral content</span>
+<span class="comment">/// below the Nyquist frequency.</span>
+<span class="keyword">fn</span> <span class="function">poly_blep</span>(&amp;<span class="keyword">self</span>, t: <span class="type">f64</span>) -> <span class="type">f64</span> {
+    <span class="keyword">let</span> dt = <span class="keyword">self</span>.phase_increment;
+    <span class="keyword">if</span> t < dt {
+        <span class="keyword">let</span> t = t / dt;
+        <span class="number">2.0</span> * t - t * t - <span class="number">1.0</span>
+    } <span class="keyword">else if</span> t > <span class="number">1.0</span> - dt {
+        <span class="keyword">let</span> t = (t - <span class="number">1.0</span>) / dt;
+        t * t + <span class="number">2.0</span> * t + <span class="number">1.0</span>
+    } <span class="keyword">else</span> { <span class="number">0.0</span> }
+}
+</code></pre>
+
+<!-- ================================================================ -->
+<h2>4.9 Complete Signal Chain</h2>
+
+<div class="signal-chain">
+  TOPOLOGY                INVARIANTS              INSTRUMENTS
+  ========                ==========              ===========
+
+  Point Cloud P    ---->  beta_0 = 2        --->  BettiDrone:
+  at radius r             beta_1 = 1              2 sawtooth voices
+                          beta_2 = 0              1 LFO (0.1 Hz, depth 0.003)
+  VR(P, r)         ---->  f = (5, 7, 3)     --->  0 sub-oscillators
+                          chi = 5-7+3 = 1         ratios: 1.0, 7/5, 3/7
+                                                  filter: LP @ 8*f0, Q=1.5
+  Persistence      ---->  (0, 0.3, H0)
+  Diagram                 (0, 0.5, H0)      --->  SimplicialPluck:
+                          (0, inf, H0)              2 parallel delay lines
+                          (0.4, 0.9, H1)            excitation: f-vector harmonics
+                                                    damping: 0.9985 (beta_1 sustain)
+
+                                             --->  MorseSynth:
+                                                    sine @ 220Hz, t=0s (H0 birth)
+                                                    sine @ 350Hz, t=0s (H0 birth)
+                                                    tri @ 440Hz, t=0.8s (H1 birth)
+
+  EFFECTS                                   OUTPUT
+  =======                                   ======
+
+  BettiDistortion:                           clamp(-1, 1)
+    2 fold stages (beta_0=2)                 |
+    feedback 0.15 (beta_1=1)           -->   Web Audio
+    asymmetry 0.0 (beta_2=0)                 AudioWorklet
+                                             |
+  PersistenceDelay:                          DAC
+    tap 1: 0ms, fb=0.28, lvl=1.0            |
+    tap 2: 6ms, fb=0.47, lvl=1.0            speakers
+    tap 3: 0ms, fb=inf,  lvl=1.0
+    tap 4: 12ms, fb=0.47, lvl=0.5
+
+  CurvatureReverb:
+    chi=1 (positive curv.)
+    RT60 = 0.8s, damping = 0.2
+    8 comb filters, 3 allpasses
+    mix = 0.3
+</div>
+
+<!-- ================================================================ -->
+<h2>4.10 The TopologySonifier: Putting It All Together</h2>
+
+<pre><code><span class="comment">/// Create a sonifier from a simplicial complex.</span>
+<span class="comment">/// This wires up all mappings M1-M7.</span>
+<span class="keyword">pub fn</span> <span class="function">from_complex</span>(
+    complex: <span class="type">SimplicialComplex</span>,
+    base_freq: <span class="type">f64</span>,
+    sample_rate: <span class="type">f64</span>,
+) -> <span class="type">Self</span> {
+    <span class="comment">// Compute invariants</span>
+    <span class="keyword">let</span> betti = <span class="type">BettiNumbers</span>::compute(&amp;complex);      <span class="comment">// Ch.2</span>
+    <span class="keyword">let</span> chi = complex.euler_characteristic();         <span class="comment">// Def 1.14</span>
+    <span class="keyword">let</span> f_vec = complex.f_vector();                   <span class="comment">// Def 1.9</span>
+
+    <span class="comment">// Build instruments (Mappings M1-M4)</span>
+    <span class="keyword">let mut</span> drone = <span class="type">BettiDrone</span>::new(&amp;betti, base_freq, sample_rate);
+    drone.set_ratios_from_f_vector(&amp;f_vec);            <span class="comment">// M4</span>
+
+    <span class="keyword">let mut</span> pluck = <span class="type">SimplicialPluck</span>::new(base_freq, sample_rate);
+    pluck.configure(base_freq, &amp;f_vec, betti.b0(), betti.b1());
+
+    <span class="keyword">let</span> morse = <span class="type">MorseSynth</span>::new(sample_rate);
+
+    <span class="comment">// Build effects (Mappings M5-M6)</span>
+    <span class="keyword">let</span> delay = <span class="type">PersistenceDelay</span>::new(sample_rate, <span class="number">2.0</span>);
+    <span class="keyword">let</span> reverb = <span class="type">CurvatureReverb</span>::from_euler_characteristic(chi, sample_rate); <span class="comment">// M5</span>
+    <span class="keyword">let</span> distortion = <span class="type">BettiDistortion</span>::from_betti(
+        betti.b0(), betti.b1(), betti.b2()
+    );
+
+    <span class="type">Self</span> { complex, betti, persistence: <span class="type">None</span>,
+           drone, pluck, morse, delay, reverb, distortion,
+           drone_level: <span class="number">0.5</span>, pluck_level: <span class="number">0.3</span>, morse_level: <span class="number">0.4</span>,
+           master_volume: <span class="number">0.7</span>, sample_rate }
+}
+</code></pre>
+
+<!-- ================================================================ -->
+<h2>Exercises</h2>
+
+<div class="exercise">
+  <p class="label">Exercise 4.1</p>
+  <p>
+    Compute the eigenvalues of the graph Laplacian \(L_0 = D - A\) for the
+    cycle graph \(C_n\) on \(n\) vertices. Show that they are
+    \(\lambda_k = 2 - 2\cos(2\pi k / n)\). How do these relate to the
+    harmonic series?
+  </p>
+</div>
+
+<div class="exercise">
+  <p class="label">Exercise 4.2</p>
+  <p>
+    The Karplus-Strong averaging filter \(y[n] = (y[n-N] + y[n-N+1])/2\) has
+    transfer function \(H(z) = (1 + z^{-1})/2\). Compute the magnitude response
+    \(|H(e^{j\omega})|\) and show that it is a lowpass filter with cutoff at
+    \(f_s / 4\). What musical consequence does this have for the decay of
+    harmonics?
+  </p>
+</div>
+
+<div class="exercise">
+  <p class="label">Exercise 4.3</p>
+  <p>
+    Design a mapping from the persistence landscape \(\lambda_1(t)\) to the
+    cutoff frequency of a lowpass filter. What should happen when \(\lambda_1\)
+    is large vs. small? Implement this as a modification to the
+    <code>TopologySonifier</code>.
+  </p>
+</div>
+
+<div class="exercise">
+  <p class="label">Exercise 4.4</p>
+  <p>
+    The Chebyshev expansion of \(\sin(\pi x / 2)\) (the wavefolder) is
+    \(\sin(\pi x/2) = \sum c_k T_k(x)\) where \(T_k\) are Chebyshev polynomials.
+    Compute the first few coefficients \(c_k\) and explain what harmonics are
+    generated by one fold stage.
+  </p>
+</div>
+
+<div class="exercise">
+  <p class="label">Exercise 4.5 (Design)</p>
+  <p>
+    Propose an alternative mapping for \(\beta_1\) that uses ring modulation
+    instead of FM modulation. What are the spectral consequences? Which produces
+    a more "topological" sound?
+  </p>
+</div>
+
+<div class="exercise">
+  <p class="label">Exercise 4.6</p>
+  <p>
+    The Gauss-Bonnet-to-reverb mapping is qualitative. Design a quantitative version
+    that computes the actual average curvature at each vertex using the angle defect
+    formula \(\kappa(v) = 2\pi - \sum_{\sigma \ni v} \theta_\sigma(v)\) and uses
+    the distribution of curvatures to shape the reverb density.
+  </p>
+</div>
+
+<hr>
+
+<!-- ================================================================ -->
+<h2>Why Each Mapping Is Natural: Design Justifications</h2>
+
+<div class="remark">
+  <p class="label">Design Justification: \(\beta_0 \to\) Oscillator Count</p>
+  <p>
+    A connected component is, by definition, a maximal subspace within which any two points can
+    be connected by a path. Two points in <em>different</em> components cannot interact. This is
+    precisely the situation with independent oscillators: they produce independent signals that
+    do not share harmonics or phase relationships.
+  </p>
+  <p>
+    The mapping is not merely analogical; it is <strong>categorically natural</strong>. The functor
+    from simplicial complexes to their \(\pi_0\) (path components) is left adjoint to the
+    discrete-space functor. Similarly, the &ldquo;independent signal sources&rdquo; functor from
+    audio graphs preserves coproducts. The mapping \(\beta_0 \to\) voice count is the unique
+    structure-preserving assignment that respects disjoint union: \(\beta_0(K_1 \sqcup K_2) =
+    \beta_0(K_1) + \beta_0(K_2)\), and independent oscillators add linearly.
+  </p>
+</div>
+
+<div class="remark">
+  <p class="label">Design Justification: \(\beta_1 \to\) Modulation</p>
+  <p>
+    A generator of \(H_1\) is a cycle &mdash; a closed path in the complex. Cycles are inherently
+    periodic: traversing a loop returns you to the starting point. Low-frequency oscillators (LFOs)
+    are the audio manifestation of periodicity below the audible range. The number of <em>independent</em>
+    cycles (\(\beta_1\)) determines the number of independent modulation sources: each generator of
+    \(H_1\) contributes its own periodic motion.
+  </p>
+  <p>
+    <strong>Physically:</strong> In vibrating membranes, the eigenmodes of the Laplacian on a surface
+    with \(\beta_1 = g\) (genus \(g\)) include \(2g\) extra harmonic modes compared to the sphere.
+    These extra modes correspond to vibrations &ldquo;around the handles&rdquo; and produce lower-frequency
+    resonances &mdash; exactly the role our LFOs play.
+  </p>
+</div>
+
+<div class="remark">
+  <p class="label">Design Justification: \(\chi \to\) Reverb via Gauss-Bonnet</p>
+  <p>
+    The Gauss-Bonnet theorem is one of the deepest results connecting geometry and topology:
+    \[
+      \int_M K\, dA = 2\pi\chi(M).
+    \]
+    It says the <em>total</em> curvature of a closed surface is fixed by its topology. For sonification:
+  </p>
+  <ul style="margin: 0.5em 0 0.5em 1.5em;">
+    <li>\(\chi > 0\) (sphere): positive curvature &rarr; geodesics converge &rarr; sound focuses &rarr;
+      short, bright reverb (like a dome or parabolic reflector).</li>
+    <li>\(\chi = 0\) (torus): zero average curvature &rarr; geodesics stay parallel &rarr;
+      neutral reverb (like a flat room).</li>
+    <li>\(\chi < 0\) (high-genus surface): negative curvature &rarr; geodesics diverge exponentially
+      &rarr; sound scatters in many directions &rarr; long, dark, diffuse reverb (like a cave system).</li>
+  </ul>
+  <p>
+    This is not a metaphor. The wave equation on a Riemannian manifold \(M\) has Green's function
+    \(G(x, y, t)\) whose decay rate is governed by the curvature of \(M\). Negative curvature
+    produces slower decay (longer reverb tails). Our <code>CurvatureReverb</code> implements this
+    principle via the discrete proxy of the Euler characteristic.
+  </p>
+</div>
+
+<div class="remark">
+  <p class="label">Design Justification: Persistence \(\to\) Delay Taps</p>
+  <p>
+    A persistence pair \((b, d)\) records a topological feature that was born at scale \(b\) and
+    died at scale \(d\). The <em>duration</em> \(d - b\) measures how &ldquo;significant&rdquo; the
+    feature is &mdash; how wide a range of scales it survives.
+  </p>
+  <p>
+    In a delay effect, each tap echoes the input signal after some time. Our mapping:
+    \(\mathrm{birth} \to \mathrm{delay\_time}\), \(\mathrm{persistence} \to \mathrm{feedback}\),
+    \(\mathrm{dimension} \to \mathrm{level}\). Significant features echo longer (more feedback);
+    short-lived features fade quickly. This is a temporal sonification of the persistence diagram:
+    the delay effect literally &ldquo;plays back&rdquo; the topological history of the filtration.
+  </p>
+</div>
+
+<div class="remark">
+  <p class="label">Design Justification: Karplus-Strong as Discrete Wave Equation</p>
+  <p>
+    The Karplus-Strong algorithm (1983) initializes a delay line with noise and averages adjacent
+    samples in a feedback loop. This is a finite-difference discretization of the 1D wave equation
+    \(\partial_{tt} u = c^2 \partial_{xx} u\) on an interval with periodic boundary conditions.
+    The delay line length \(L = f_s / f_0\) sets the fundamental frequency.
+  </p>
+  <p>
+    On a simplicial complex, we replace the 1D Laplacian \(\partial_{xx}\) with the combinatorial
+    Laplacian \(L_k = \partial_{k+1} \partial_{k+1}^T + \partial_k^T \partial_k\). The eigenvalues
+    of \(L_0\) (the graph Laplacian) determine the natural frequencies of vibration on the complex.
+    Our <code>SimplicialPluck</code> approximates this: the f-vector shapes the excitation spectrum,
+    and the Betti numbers control the feedback filter, effectively tilting the spectral envelope
+    toward the eigenfrequencies dictated by the topology.
+  </p>
+</div>
+
+<!-- ================================================================ -->
+<h2>References</h2>
+
+<h3>Sonification and Auditory Display</h3>
+
+<ol style="margin: 0.5rem 0 1.5rem 2rem; line-height: 2.2;">
+  <li><strong>Hermann, T., Hunt, A., and Neuhoff, J.G.</strong> (eds.)
+    <em>The Sonification Handbook</em>. Logos Verlag, 2011. ISBN 978-3-8325-2819-5.
+    <br><span style="color:var(--fg-dim);">The standard reference for sonification design. Chapter 2 (taxonomy of sonification techniques),
+    Chapter 5 (parameter mapping), and Chapter 15 (psychoacoustic considerations) are directly
+    relevant to our design choices.</span></li>
+
+  <li><strong>Grond, F. and Berger, J.</strong>
+    &ldquo;Parameter mapping sonification.&rdquo; In <em>The Sonification Handbook</em>, Chapter 15, pp. 363&ndash;397.
+    <br><span style="color:var(--fg-dim);">Systematic treatment of mapping data dimensions to audio parameters. Our topology-to-audio
+    mapping is an instance of their &ldquo;many-to-many&rdquo; mapping paradigm.</span></li>
+</ol>
+
+<h3>Spectral Graph Theory and the Laplacian</h3>
+
+<ol start="3" style="margin: 0.5rem 0 1.5rem 2rem; line-height: 2.2;">
+  <li><strong>Chung, F.R.K.</strong> <em>Spectral Graph Theory</em>. AMS CBMS 92, 1997.
+    <br><span style="color:var(--fg-dim);">The graph Laplacian, its eigenvalues, Cheeger inequality, and connections to random walks.
+    Chapter 1 defines the normalized Laplacian whose spectrum our filters approximate.</span></li>
+
+  <li><strong>Lim, L.-H.</strong>
+    &ldquo;Hodge Laplacians on graphs.&rdquo;
+    <em>SIAM Review</em> 62(3) (2020), 685&ndash;715.
+    <br><span style="color:var(--fg-dim);">Extends the graph Laplacian to higher-dimensional simplicial complexes: the k-th Hodge Laplacian
+    \(L_k = \partial_{k+1}\partial_{k+1}^T + \partial_k^T\partial_k\). Its kernel is isomorphic to \(H_k\)
+    (discrete Hodge theorem). The eigenvalues determine the natural frequencies of k-dimensional vibration.</span></li>
+
+  <li><strong>Barbarossa, S. and Sardellitti, S.</strong>
+    &ldquo;Topological signal processing over simplicial complexes.&rdquo;
+    <em>IEEE Trans. Signal Process.</em> 68 (2020), 2992&ndash;3007.
+    <br><span style="color:var(--fg-dim);">Signal processing on simplicial complexes using the Hodge decomposition. Signals decompose into
+    gradient + curl + harmonic components; the harmonic component lives in the homology. Directly
+    connects our topological invariants to signal processing.</span></li>
+</ol>
+
+<h3>Sound Synthesis References</h3>
+
+<ol start="6" style="margin: 0.5rem 0 1.5rem 2rem; line-height: 2.2;">
+  <li><strong>Karplus, K. and Strong, A.</strong>
+    &ldquo;Digital synthesis of plucked-string and drum timbres.&rdquo;
+    <em>Computer Music Journal</em> 7(2) (1983), 43&ndash;55.
+    <br><span style="color:var(--fg-dim);">The original Karplus-Strong algorithm. Our <code>SimplicialPluck</code> extends this with
+    topology-driven excitation signals and feedback filter parameters.</span></li>
+
+  <li><strong>Smith, J.O.</strong>
+    <em>Physical Audio Signal Processing</em>. Online book, 2010.
+    <code>ccrma.stanford.edu/~jos/pasp/</code>
+    <br><span style="color:var(--fg-dim);">Comprehensive treatment of digital waveguides, biquad filters, and physical modeling synthesis.
+    Our biquad filter implementation follows the Audio EQ Cookbook conventions referenced here.</span></li>
+
+  <li><strong>V&auml;lim&auml;ki, V., Pakarinen, J., Erkut, C., and Karjalainen, M.</strong>
+    &ldquo;Discrete-time modelling of musical instruments.&rdquo;
+    <em>Rep. Prog. Phys.</em> 69(1) (2006), 1&ndash;78.
+    <br><span style="color:var(--fg-dim);">Survey of physical modeling synthesis techniques. Section 3 (string models) and Section 5
+    (resonator models) are relevant to our instrument design.</span></li>
+</ol>
+
+<h3>Morse Theory</h3>
+
+<ol start="9" style="margin: 0.5rem 0 1.5rem 2rem; line-height: 2.2;">
+  <li><strong>Milnor, J.</strong> <em>Morse Theory</em>. Annals of Mathematics Studies 51. Princeton, 1963.
+    <br><span style="color:var(--fg-dim);">The classic. Chapters 1&ndash;3 develop the relationship between critical points and topology changes.
+    Our <code>MorseSynth</code> implements the discrete analogue: as the filtration parameter sweeps,
+    births and deaths of homological features correspond to critical points of the filtration function.</span></li>
+
+  <li><strong>Forman, R.</strong>
+    &ldquo;Morse theory for cell complexes.&rdquo;
+    <em>Adv. Math.</em> 134(1) (1998), 90&ndash;145.
+    <br><span style="color:var(--fg-dim);">Discrete Morse theory on CW-complexes. Defines discrete Morse functions, gradient vector fields,
+    and critical simplices. A future direction for enriching <code>MorseSynth</code> with true
+    discrete Morse functions rather than filtration-derived approximations.</span></li>
+
+  <li><strong>Matsumoto, Y.</strong>
+    <em>An Introduction to Morse Theory</em>. AMS Translations of Mathematical Monographs 208, 2002.
+    <br><span style="color:var(--fg-dim);">Accessible introduction including the Morse inequalities \(c_k \geq \beta_k\) and the
+    Morse-Smale complex. Well-suited for readers coming from the applied side.</span></li>
+</ol>
+
+<h3>Curvature and the Gauss-Bonnet Theorem</h3>
+
+<ol start="12" style="margin: 0.5rem 0 1.5rem 2rem; line-height: 2.2;">
+  <li><strong>do Carmo, M.P.</strong> <em>Riemannian Geometry</em>. Birkh&auml;user, 1992.
+    <br><span style="color:var(--fg-dim);">Chapter 6 proves the Gauss-Bonnet theorem for surfaces. The connection between curvature and
+    topology is the mathematical foundation of our <code>CurvatureReverb</code>.</span></li>
+
+  <li><strong>Forman, R.</strong>
+    &ldquo;Bochner's method for cell complexes and combinatorial Ricci curvature.&rdquo;
+    <em>Discrete Comput. Geom.</em> 29(3) (2003), 323&ndash;374.
+    <br><span style="color:var(--fg-dim);">Defines Ricci curvature for cell complexes. A future refinement: instead of using the global
+    Euler characteristic, use per-vertex combinatorial curvature for spatially varying reverb.</span></li>
+</ol>
+
+<p style="text-align: center; margin-top: 2em;">
+  <a href="03-persistent-homology.html">&larr; Chapter 3: Persistent Homology</a>
+  &emsp;|&emsp;
+  <a href="05-storyboard.html">Design Storyboard &rarr;</a>
+</p>
+
+<div class="footer">
+  <p>topo-sonify &middot; Chapter 4: The Sonification Mapping</p>
+</div>
+
+</body>
+</html>

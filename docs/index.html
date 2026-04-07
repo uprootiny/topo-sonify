@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Topology-First Sonification: A Graduate Seminar</title>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --bg-code: #111118;
+    --fg: #c8c8d0;
+    --fg-dim: #6a6a7a;
+    --fg-bright: #e8e8f0;
+    --accent: #7aa2f7;
+    --accent2: #9ece6a;
+    --accent3: #bb9af7;
+    --accent4: #f7768e;
+    --accent5: #e0af68;
+    --border: #1a1a2e;
+    --link: #7aa2f7;
+    --link-hover: #9dc0ff;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: 'Berkeley Mono', 'JetBrains Mono', 'Fira Code', 'SF Mono', 'Cascadia Code', monospace;
+    font-size: 15px;
+    line-height: 1.75;
+    max-width: 52em;
+    margin: 0 auto;
+    padding: 3em 2em 6em;
+  }
+  h1, h2, h3, h4 {
+    color: var(--fg-bright);
+    font-weight: 600;
+    margin-top: 2.5em;
+    margin-bottom: 0.75em;
+  }
+  h1 { font-size: 1.8em; border-bottom: 2px solid var(--accent); padding-bottom: 0.4em; margin-top: 0; }
+  h2 { font-size: 1.4em; border-bottom: 1px solid var(--border); padding-bottom: 0.3em; }
+  h3 { font-size: 1.15em; color: var(--accent3); }
+  h4 { font-size: 1.0em; color: var(--accent5); }
+  p { margin-bottom: 1em; }
+  a { color: var(--link); text-decoration: none; border-bottom: 1px solid transparent; transition: border-color 0.2s; }
+  a:hover { color: var(--link-hover); border-bottom-color: var(--link-hover); }
+  ul, ol { margin-bottom: 1em; padding-left: 1.5em; }
+  li { margin-bottom: 0.35em; }
+  blockquote {
+    border-left: 3px solid var(--accent3);
+    padding: 0.75em 1.25em;
+    margin: 1.5em 0;
+    background: rgba(187, 154, 247, 0.05);
+    font-style: italic;
+  }
+  pre {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1.25em;
+    overflow-x: auto;
+    margin: 1.5em 0;
+    font-size: 0.9em;
+    line-height: 1.6;
+  }
+  code {
+    background: var(--bg-code);
+    padding: 0.15em 0.4em;
+    border-radius: 3px;
+    font-size: 0.92em;
+  }
+  pre code { background: none; padding: 0; }
+  .keyword { color: var(--accent3); }
+  .type { color: var(--accent); }
+  .string { color: var(--accent2); }
+  .comment { color: var(--fg-dim); font-style: italic; }
+  .number { color: var(--accent5); }
+  .function { color: var(--accent); }
+  .nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1em 0;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 2em;
+    flex-wrap: wrap;
+    gap: 0.5em;
+  }
+  .nav a {
+    color: var(--fg-dim);
+    font-size: 0.85em;
+    padding: 0.3em 0.6em;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    transition: all 0.2s;
+  }
+  .nav a:hover { color: var(--accent); border-color: var(--accent); }
+  .nav a.active { color: var(--accent); border-color: var(--accent); }
+  .toc {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1.5em 2em;
+    margin: 2em 0;
+  }
+  .toc h3 { margin-top: 0; color: var(--accent); }
+  .toc ol { margin-bottom: 0; }
+  .toc li { margin-bottom: 0.6em; }
+  .toc a { font-size: 1.05em; }
+  .definition {
+    border-left: 3px solid var(--accent);
+    padding: 1em 1.25em;
+    margin: 1.5em 0;
+    background: rgba(122, 162, 247, 0.04);
+  }
+  .definition .label { color: var(--accent); font-weight: 600; margin-bottom: 0.5em; }
+  .theorem {
+    border-left: 3px solid var(--accent2);
+    padding: 1em 1.25em;
+    margin: 1.5em 0;
+    background: rgba(158, 206, 106, 0.04);
+  }
+  .theorem .label { color: var(--accent2); font-weight: 600; margin-bottom: 0.5em; }
+  .remark {
+    border-left: 3px solid var(--accent5);
+    padding: 1em 1.25em;
+    margin: 1.5em 0;
+    background: rgba(224, 175, 104, 0.04);
+  }
+  .remark .label { color: var(--accent5); font-weight: 600; margin-bottom: 0.5em; }
+  .signal-chain {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 2em;
+    margin: 2em 0;
+    font-size: 0.85em;
+    line-height: 1.5;
+    overflow-x: auto;
+    white-space: pre;
+  }
+  .chapter-desc { color: var(--fg-dim); font-size: 0.9em; margin-top: -0.3em; }
+  .epigraph {
+    text-align: right;
+    font-style: italic;
+    color: var(--fg-dim);
+    margin: 2em 0 3em;
+    padding-right: 2em;
+  }
+  .epigraph .attribution { font-size: 0.85em; margin-top: 0.3em; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 3em 0; }
+  .footer {
+    margin-top: 4em;
+    padding-top: 1.5em;
+    border-top: 1px solid var(--border);
+    color: var(--fg-dim);
+    font-size: 0.85em;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a class="active" href="index.html">Home</a>
+  <a href="01-simplicial-complexes.html">Ch.1 Simplices</a>
+  <a href="02-homology.html">Ch.2 Homology</a>
+  <a href="03-persistent-homology.html">Ch.3 Persistence</a>
+  <a href="04-sonification-mapping.html">Ch.4 Sonification</a>
+  <a href="05-storyboard.html">Storyboard</a>
+</nav>
+
+<h1>Topology-First Sonification</h1>
+<p style="color: var(--accent3); font-size: 1.1em; margin-bottom: 0.5em;">A Graduate Seminar in Applied Algebraic Topology and Sound Synthesis</p>
+<p class="chapter-desc">topo-sonify &mdash; Rust/WASM signal chain driven by persistent homology</p>
+
+<div class="epigraph">
+  <p>"Topology is precisely that mathematical discipline which allows a passage from the local to the global."</p>
+  <p class="attribution">&mdash; Ren&eacute; Thom</p>
+</div>
+
+<!-- ================================================================ -->
+<h2>Table of Contents</h2>
+
+<div class="toc">
+  <h3>Chapters</h3>
+  <ol>
+    <li>
+      <a href="01-simplicial-complexes.html">Simplicial Complexes</a>
+      <p class="chapter-desc">The combinatorial scaffolding of shape. \(k\)-simplices, the face lattice, \(f\)-vectors, Euler characteristic, Vietoris-Rips complexes from point clouds.</p>
+    </li>
+    <li>
+      <a href="02-homology.html">Homology and the Boundary Operator</a>
+      <p class="chapter-desc">Detecting holes algebraically. Chain groups, \(\partial^2 = 0\), cycles vs. boundaries, Betti numbers \(\beta_k\), Smith normal form.</p>
+    </li>
+    <li>
+      <a href="03-persistent-homology.html">Persistent Homology and Filtrations</a>
+      <p class="chapter-desc">Multi-scale topology. Filtrations, persistence pairs \((b,d)\), persistence diagrams, landscapes, entropy, bottleneck distance.</p>
+    </li>
+    <li>
+      <a href="04-sonification-mapping.html">The Sonification Mapping</a>
+      <p class="chapter-desc">From invariant to audio. \(\beta_0 \to\) voices, \(\beta_1 \to\) modulation, \(\chi \to\) reverb, persistence \(\to\) delay, Karplus-Strong, waveshaping.</p>
+    </li>
+    <li>
+      <a href="05-storyboard.html">Design Storyboard</a>
+      <p class="chapter-desc">Interaction design, signal flow diagrams, architecture, module graph, parameter tables, future directions.</p>
+    </li>
+  </ol>
+</div>
+
+<!-- ================================================================ -->
+<h2>What Does It Mean to Sonify Topology?</h2>
+
+<p>
+This project takes a geometric point cloud in \(\mathbb{R}^2\), constructs its
+Vietoris-Rips simplicial complex at varying scale parameters, computes the
+persistent homology of the resulting filtration, and maps the topological
+invariants into audio synthesis parameters in real time. The result is a
+sound that <em>is</em> the topology: you hear connected components as distinct
+voices, loops as cyclic modulation, voids as resonant sub-oscillators, and
+the Euler characteristic as the reverb character of the acoustic space itself.
+</p>
+
+<p>
+The phrase "topology-first" is deliberate. Most data sonification systems
+begin with a metaphor&mdash;"pitch = magnitude," "pan = x-coordinate"&mdash;and
+then search for data to fill the metaphor. We reverse this. We begin with
+the mathematics: a simplicial complex \(K\), its chain groups \(C_k(K; \mathbb{F}_2)\),
+the boundary operators \(\partial_k\), the homology groups \(H_k(K; \mathbb{F}_2)\),
+and the persistence diagram \(\mathrm{Dgm}(K)\). Only then do we ask: what
+sound does this invariant <em>want</em> to become?
+</p>
+
+<p>
+The answer emerges from the structure of the invariants themselves.
+The Betti number \(\beta_0\) counts connected components&mdash;discrete,
+independent entities&mdash;so it maps naturally to independent oscillator
+voices in a chord. The first Betti number \(\beta_1\) counts independent
+cycles, and cycles are inherently periodic, so \(\beta_1\) maps to the
+depth of cyclic (LFO) modulation. The Euler characteristic \(\chi = \sum (-1)^k \beta_k\),
+a single integer encoding global curvature via the Gauss-Bonnet theorem,
+controls the reverb character: positive curvature (sphere-like) yields short, focused
+reverb, while negative curvature (hyperbolic) yields long, diffuse reverb.
+</p>
+
+<!-- ================================================================ -->
+<h2>Intellectual History</h2>
+
+<h3>From Euler to Poincar&eacute;</h3>
+
+<p>
+The story begins with Leonhard Euler's 1736 solution of the K&ouml;nigsberg bridge
+problem, the first theorem in graph theory and arguably the first theorem in
+topology. Euler observed that the possibility of crossing every bridge exactly
+once depends not on the geometry of the bridges but on a combinatorial invariant:
+the number of vertices with odd degree. This is the first instance of a
+<em>topological</em> argument&mdash;an argument that depends on connectivity, not on
+metric properties.
+</p>
+
+<p>
+In the same letter, Euler proved what we now call the Euler formula for polyhedra:
+\[
+  V - E + F = 2,
+\]
+where \(V\), \(E\), \(F\) are the numbers of vertices, edges, and faces of a convex polyhedron.
+The remarkable fact&mdash;that this alternating sum is always 2, regardless of the
+polyhedron&mdash;makes \(\chi = V - E + F\) the first topological invariant.
+</p>
+
+<p>
+Henri Poincar&eacute;'s 1895 <em>Analysis Situs</em> generalized Euler's formula to arbitrary
+dimensions by introducing <em>homology groups</em>. Poincar&eacute; defined the Betti numbers
+\(\beta_k\) (named after Enrico Betti, who had earlier generalized Euler's idea to
+higher connectivity numbers) and proved the <strong>Euler-Poincar&eacute; theorem</strong>:
+\[
+  \chi(K) = \sum_{k=0}^{d} (-1)^k \beta_k = \sum_{k=0}^{d} (-1)^k f_k,
+\]
+relating the purely combinatorial \(f\)-vector \((f_0, f_1, \ldots, f_d)\) to the
+algebraic Betti numbers. This equation is the bridge between the combinatorial
+and the algebraic, and it is central to our sonification design: the \(f\)-vector
+gives us harmonic ratios, while the Betti numbers give us voices and modulation.
+</p>
+
+<h3>Computational Topology and TDA</h3>
+
+<p>
+The modern era begins with Edelsbrunner, Letscher, and Zomorodian's 2002 paper
+introducing <em>persistent homology</em>, which solved a fundamental problem: given
+a point cloud, at what scale should one build the simplicial complex? Their
+answer: build it at <em>all</em> scales simultaneously, track how topological features
+are born and die, and record the result as a <em>persistence diagram</em>.
+</p>
+
+<p>
+The key theoretical result is the <strong>stability theorem</strong> (Cohen-Steiner,
+Edelsbrunner, Harer, 2007): small perturbations to the input produce small
+perturbations to the persistence diagram, as measured by the bottleneck distance.
+This makes persistence diagrams robust descriptors of shape, suitable for real-time
+interactive systems where the point cloud is continuously changing.
+</p>
+
+<p>
+Topological Data Analysis (TDA) has since found applications in materials science,
+neuroscience, genomics, sensor networks, and machine learning. Our contribution
+is to extend TDA into the domain of sound: using persistent homology not to
+<em>analyze</em> data but to <em>generate</em> audio, creating a direct perceptual channel
+from topological structure to human hearing.
+</p>
+
+<h3>Why Sound?</h3>
+
+<p>
+The human auditory system is exquisitely sensitive to structural properties that
+have natural topological analogues. We perceive:
+</p>
+
+<ul>
+  <li><strong>Polyphony</strong> (multiple independent voices) &mdash; analogous to \(\beta_0\), counting independent components.</li>
+  <li><strong>Periodicity</strong> (rhythmic and timbral modulation) &mdash; analogous to \(\beta_1\), counting independent cycles.</li>
+  <li><strong>Spatial depth</strong> (reverb, room acoustics) &mdash; analogous to curvature, encoded in \(\chi\) via Gauss-Bonnet.</li>
+  <li><strong>Harmonic structure</strong> (overtone series, just intonation) &mdash; analogous to the \(f\)-vector, counting simplices at each dimension.</li>
+  <li><strong>Temporal evolution</strong> (notes appearing and fading) &mdash; analogous to persistence pairs, marking birth and death of features.</li>
+</ul>
+
+<p>
+Sound is, in a precise mathematical sense, the right target for topological
+sonification: the signal space \(L^2([0,T])\) is an infinite-dimensional Hilbert
+space with a rich inner product structure, and the Fourier basis provides a
+spectral decomposition analogous to the eigendecomposition of the combinatorial
+Laplacian on the simplicial complex.
+</p>
+
+<!-- ================================================================ -->
+<h2>Mathematical Prerequisites</h2>
+
+<p>
+These notes assume familiarity with:
+</p>
+
+<ul>
+  <li><strong>Linear algebra</strong> over finite fields, particularly \(\mathbb{F}_2 = \mathbb{Z}/2\mathbb{Z}\). We use
+    matrix reduction (Gaussian elimination) over \(\mathbb{F}_2\) to compute ranks,
+    kernels, and images of boundary matrices.</li>
+  <li><strong>Abstract algebra</strong>: groups, quotient groups \(G/H\), free abelian groups.
+    The homology group \(H_k = Z_k / B_k\) is a quotient of the cycle group by the
+    boundary group.</li>
+  <li><strong>Point-set topology</strong>: open sets, continuity, compactness, connectedness.
+    We use these notions informally; the simplicial setting discretizes them.</li>
+  <li><strong>Discrete signal processing</strong>: sampling, the DFT, \(z\)-transforms, difference
+    equations. The audio modules implement standard DSP algorithms (biquad filters,
+    delay lines, waveshapers) parameterized by topological invariants.</li>
+</ul>
+
+<p>
+No background in algebraic topology is assumed. Chapters 1&ndash;3 develop the theory
+from scratch, with full proofs of the key results. The code in <code>src/topology/</code>
+implements exactly the mathematics described in the text.
+</p>
+
+<!-- ================================================================ -->
+<h2>Signal Chain Architecture</h2>
+
+<p>
+The system is implemented in Rust, compiled to WebAssembly, and run in the browser
+via the Web Audio API. The signal chain flows from topology through invariants
+to instruments to effects to output:
+</p>
+
+<div class="signal-chain">
+                    TOPOLOGY LAYER
+                    ==============
+
+  Point Cloud  ──►  Vietoris-Rips  ──►  SimplicialComplex K
+  {p₁,...,pₙ}       at radius r          (src/topology/complex.rs)
+
+                    INVARIANT LAYER
+                    ===============
+
+  K ──►  f-vector (f₀, f₁, ..., f_d)   ──►  harmonic ratios
+  K ──►  Betti numbers (β₀, β₁, β₂)   ──►  voice/modulation/sub config
+  K ──►  Euler characteristic χ         ──►  curvature / reverb
+  K ──►  Persistence diagram Dgm       ──►  delay taps + Morse score
+
+                    INSTRUMENT LAYER
+                    ================
+
+  BettiDrone ─────────┐  β₀ oscillators, β₁ LFOs, β₂ subs
+  SimplicialPluck ────┤  Karplus-Strong with f-vector excitation
+  MorseSynth ─────────┘  persistence pairs → temporal score
+
+                    EFFECTS LAYER
+                    =============
+
+  ──► BettiDistortion ──► PersistenceDelay ──► CurvatureReverb ──►
+
+                    OUTPUT
+                    ======
+
+  ──► clamp(-1, 1) ──► Web Audio AudioWorklet ──► DAC ──► speakers
+</div>
+
+<p>
+Each layer is detailed in a subsequent chapter. Chapter 1 develops the
+topology layer (simplicial complexes). Chapter 2 develops the invariant
+layer (homology and Betti numbers). Chapter 3 develops the persistence
+layer (filtrations and persistence diagrams). Chapter 4 develops the
+instrument and effect layers (sonification mapping).
+</p>
+
+<!-- ================================================================ -->
+<h2>The Code</h2>
+
+<p>
+The Rust source lives in <code>src/</code> with the following module structure:
+</p>
+
+<pre><code><span class="comment">// src/lib.rs — crate root</span>
+<span class="keyword">pub mod</span> topology;    <span class="comment">// simplicial complexes, homology, persistence</span>
+<span class="keyword">pub mod</span> audio;       <span class="comment">// oscillators, filters, effects</span>
+<span class="keyword">pub mod</span> instruments; <span class="comment">// BettiDrone, SimplicialPluck, MorseSynth</span>
+<span class="keyword">pub mod</span> mapping;     <span class="comment">// TopologySonifier — the central engine</span>
+
+<span class="comment">// src/topology/</span>
+<span class="comment">//   simplex.rs    — the Simplex struct (k-simplex as BTreeSet)</span>
+<span class="comment">//   complex.rs    — SimplicialComplex with VR construction</span>
+<span class="comment">//   homology.rs   — BettiNumbers, ChainComplex</span>
+<span class="comment">//   persistence.rs — PersistenceDiagram, PersistencePair</span>
+
+<span class="comment">// src/audio/</span>
+<span class="comment">//   oscillator.rs — Waveform, Oscillator with polyBLEP</span>
+<span class="comment">//   filter.rs     — TopologicalFilter (biquad)</span>
+<span class="comment">//   effects.rs    — PersistenceDelay, CurvatureReverb, BettiDistortion</span>
+
+<span class="comment">// src/instruments/</span>
+<span class="comment">//   betti_drone.rs       — drone voice from Betti numbers</span>
+<span class="comment">//   simplicial_pluck.rs  — Karplus-Strong from f-vector</span>
+<span class="comment">//   morse_synth.rs       — temporal score from Morse theory</span>
+
+<span class="comment">// src/mapping/</span>
+<span class="comment">//   sonifier.rs — TopologySonifier: the central pipeline</span>
+</code></pre>
+
+<p>
+Each subsequent chapter includes the relevant code stitches, with line-by-line
+commentary connecting the implementation to the mathematical definitions.
+The code and the math are developed together: the math justifies the code,
+and the code makes the math computable.
+</p>
+
+<!-- ================================================================ -->
+<h2>How to Read These Notes</h2>
+
+<p>
+These notes are designed for a graduate seminar. Each chapter opens with
+motivation, develops the mathematical theory with full definitions and proofs,
+and then presents the corresponding Rust implementation with detailed commentary.
+Exercises at the end of each chapter range from straightforward computations to
+open-ended explorations.
+</p>
+
+<p>
+The intended reading order follows the chapter numbering:
+</p>
+
+<ol>
+  <li><strong>Simplicial Complexes</strong> &mdash; the fundamental discrete model of space.</li>
+  <li><strong>Homology</strong> &mdash; the algebraic machinery for detecting holes.</li>
+  <li><strong>Persistent Homology</strong> &mdash; the multi-scale refinement.</li>
+  <li><strong>Sonification Mapping</strong> &mdash; the creative/engineering design.</li>
+  <li><strong>Storyboard</strong> &mdash; the interaction and architecture design.</li>
+</ol>
+
+<p>
+Readers with a background in algebraic topology may skip to Chapter 4 directly.
+Readers interested only in the audio engineering may read Chapter 4 independently,
+referring back as needed.
+</p>
+
+<div class="remark">
+  <p class="label">Remark (Notation)</p>
+  <p>
+    Throughout these notes, \(K\) denotes a simplicial complex, \(\sigma\) denotes a
+    simplex, \(\partial_k\) denotes the \(k\)-th boundary operator, \(H_k\) denotes the
+    \(k\)-th homology group, \(\beta_k = \mathrm{rank}(H_k)\) denotes the \(k\)-th Betti
+    number, \(\chi\) denotes the Euler characteristic, and \(\mathrm{Dgm}\) denotes a
+    persistence diagram. All coefficients are in \(\mathbb{F}_2 = \mathbb{Z}/2\mathbb{Z}\)
+    unless stated otherwise. Audio signals are elements of \(L^2([0,T])\) sampled at
+    44100 Hz.
+  </p>
+</div>
+
+<hr>
+
+<div class="toc" style="margin-top: 3em;">
+  <h3>Begin Reading</h3>
+  <p style="margin-bottom: 0;">
+    <a href="01-simplicial-complexes.html" style="font-size: 1.1em;">
+      Chapter 1: Simplicial Complexes &rarr;
+    </a>
+  </p>
+</div>
+
+<div class="footer">
+  <p>topo-sonify &middot; topology-first sonification &middot; Rust/WASM</p>
+  <p style="margin-top: 0.5em;">Graduate seminar notes. All mathematics developed from first principles.</p>
+</div>
+
+</body>
+</html>

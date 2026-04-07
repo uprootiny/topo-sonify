@@ -1,0 +1,1386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chapter 1: Simplicial Complexes &mdash; Topology-First Sonification</title>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --bg-code: #111118;
+    --fg: #c8c8d0;
+    --fg-dim: #6a6a7a;
+    --fg-bright: #e8e8f0;
+    --accent: #7aa2f7;
+    --accent2: #9ece6a;
+    --accent3: #bb9af7;
+    --accent4: #f7768e;
+    --accent5: #e0af68;
+    --border: #1a1a2e;
+    --link: #7aa2f7;
+    --link-hover: #9dc0ff;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: 'Berkeley Mono', 'JetBrains Mono', 'Fira Code', 'SF Mono', 'Cascadia Code', monospace;
+    font-size: 15px;
+    line-height: 1.75;
+    max-width: 52em;
+    margin: 0 auto;
+    padding: 3em 2em 6em;
+  }
+  h1, h2, h3, h4 {
+    color: var(--fg-bright);
+    font-weight: 600;
+    margin-top: 2.5em;
+    margin-bottom: 0.75em;
+  }
+  h1 { font-size: 1.8em; border-bottom: 2px solid var(--accent); padding-bottom: 0.4em; margin-top: 0; }
+  h2 { font-size: 1.4em; border-bottom: 1px solid var(--border); padding-bottom: 0.3em; }
+  h3 { font-size: 1.15em; color: var(--accent3); }
+  h4 { font-size: 1.0em; color: var(--accent5); }
+  p { margin-bottom: 1em; }
+  a { color: var(--link); text-decoration: none; border-bottom: 1px solid transparent; transition: border-color 0.2s; }
+  a:hover { color: var(--link-hover); border-bottom-color: var(--link-hover); }
+  ul, ol { margin-bottom: 1em; padding-left: 1.5em; }
+  li { margin-bottom: 0.35em; }
+  blockquote {
+    border-left: 3px solid var(--accent3);
+    padding: 0.75em 1.25em;
+    margin: 1.5em 0;
+    background: rgba(187, 154, 247, 0.05);
+    font-style: italic;
+  }
+  pre {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1.25em;
+    overflow-x: auto;
+    margin: 1.5em 0;
+    font-size: 0.9em;
+    line-height: 1.6;
+  }
+  code {
+    background: var(--bg-code);
+    padding: 0.15em 0.4em;
+    border-radius: 3px;
+    font-size: 0.92em;
+  }
+  pre code { background: none; padding: 0; }
+  .keyword { color: var(--accent3); }
+  .type { color: var(--accent); }
+  .string { color: var(--accent2); }
+  .comment { color: var(--fg-dim); font-style: italic; }
+  .number { color: var(--accent5); }
+  .function { color: var(--accent); }
+  .nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1em 0;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 2em;
+    flex-wrap: wrap;
+    gap: 0.5em;
+  }
+  .nav a {
+    color: var(--fg-dim);
+    font-size: 0.85em;
+    padding: 0.3em 0.6em;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    transition: all 0.2s;
+  }
+  .nav a:hover { color: var(--accent); border-color: var(--accent); }
+  .nav a.active { color: var(--accent); border-color: var(--accent); }
+  .definition {
+    border-left: 3px solid var(--accent);
+    padding: 1em 1.25em;
+    margin: 1.5em 0;
+    background: rgba(122, 162, 247, 0.04);
+  }
+  .definition .label { color: var(--accent); font-weight: 600; margin-bottom: 0.5em; }
+  .theorem {
+    border-left: 3px solid var(--accent2);
+    padding: 1em 1.25em;
+    margin: 1.5em 0;
+    background: rgba(158, 206, 106, 0.04);
+  }
+  .theorem .label { color: var(--accent2); font-weight: 600; margin-bottom: 0.5em; }
+  .proof {
+    border-left: 3px solid var(--fg-dim);
+    padding: 1em 1.25em;
+    margin: 1.5em 0;
+    background: rgba(106, 106, 122, 0.04);
+  }
+  .proof .label { color: var(--fg-dim); font-weight: 600; margin-bottom: 0.5em; }
+  .remark {
+    border-left: 3px solid var(--accent5);
+    padding: 1em 1.25em;
+    margin: 1.5em 0;
+    background: rgba(224, 175, 104, 0.04);
+  }
+  .remark .label { color: var(--accent5); font-weight: 600; margin-bottom: 0.5em; }
+  .example {
+    border-left: 3px solid var(--accent4);
+    padding: 1em 1.25em;
+    margin: 1.5em 0;
+    background: rgba(247, 118, 142, 0.04);
+  }
+  .example .label { color: var(--accent4); font-weight: 600; margin-bottom: 0.5em; }
+  .exercise {
+    border-left: 3px solid var(--accent2);
+    padding: 1em 1.25em;
+    margin: 1em 0;
+    background: rgba(158, 206, 106, 0.03);
+  }
+  .exercise .label { color: var(--accent2); font-weight: 600; margin-bottom: 0.5em; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 3em 0; }
+  .footer {
+    margin-top: 4em;
+    padding-top: 1.5em;
+    border-top: 1px solid var(--border);
+    color: var(--fg-dim);
+    font-size: 0.85em;
+    text-align: center;
+  }
+  canvas {
+    display: block;
+    margin: 1.5em auto;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: #050508;
+  }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a href="index.html">Home</a>
+  <a class="active" href="01-simplicial-complexes.html">Ch.1 Simplices</a>
+  <a href="02-homology.html">Ch.2 Homology</a>
+  <a href="03-persistent-homology.html">Ch.3 Persistence</a>
+  <a href="04-sonification-mapping.html">Ch.4 Sonification</a>
+  <a href="05-storyboard.html">Storyboard</a>
+</nav>
+
+<h1>Chapter 1: Simplicial Complexes</h1>
+<p style="color: var(--fg-dim);">The combinatorial scaffolding of shape</p>
+
+<!-- ================================================================ -->
+<h2>1.1 Motivation: Why Simplicial Complexes?</h2>
+
+<p>
+The central problem of computational topology is: given a finite set of data
+points \(P = \{p_1, \ldots, p_n\} \subset \mathbb{R}^d\), infer the topological
+structure of the underlying space from which the points were sampled.
+We need a combinatorial model of space that is (a) finite, (b) computable,
+and (c) rich enough to capture topological information (connectivity, holes, voids).
+</p>
+
+<p>
+Simplicial complexes are the answer. They are built from the simplest possible
+building blocks&mdash;points, edges, triangles, tetrahedra, and their higher-dimensional
+analogues&mdash;glued together along shared faces. Every reasonable topological space
+can be <em>triangulated</em> (represented as a simplicial complex up to homeomorphism),
+and the topology of a simplicial complex can be computed purely combinatorially,
+using linear algebra over finite fields.
+</p>
+
+<p>
+For our sonification, the simplicial complex is the primary data structure. When
+a user places or moves points on the canvas, we construct the Vietoris-Rips
+complex at the current scale parameter. The combinatorial structure of this
+complex&mdash;how many vertices, edges, triangles, and higher simplices it contains,
+and how they are connected&mdash;determines every parameter of the sound.
+</p>
+
+<!-- ================================================================ -->
+<h2>1.2 The \(k\)-Simplex</h2>
+
+<div class="definition">
+  <p class="label">Definition 1.1 (Geometric \(k\)-simplex)</p>
+  <p>
+    Let \(v_0, v_1, \ldots, v_k \in \mathbb{R}^n\) be \(k+1\) points that are
+    <strong>affinely independent</strong>: the vectors \(v_1 - v_0, v_2 - v_0, \ldots, v_k - v_0\)
+    are linearly independent. The <strong>\(k\)-simplex</strong> spanned by these points is
+    the convex hull:
+    \[
+      \sigma = [v_0, v_1, \ldots, v_k] = \left\{ \sum_{i=0}^{k} t_i v_i \;\bigg|\; t_i \geq 0,\; \sum_{i=0}^{k} t_i = 1 \right\}.
+    \]
+    The points \(v_0, \ldots, v_k\) are the <strong>vertices</strong> of \(\sigma\), and
+    \(k\) is the <strong>dimension</strong> of \(\sigma\).
+  </p>
+</div>
+
+<p>
+The familiar cases:
+</p>
+<ul>
+  <li>A \(0\)-simplex is a point.</li>
+  <li>A \(1\)-simplex is a line segment (edge) between two points.</li>
+  <li>A \(2\)-simplex is a filled triangle.</li>
+  <li>A \(3\)-simplex is a solid tetrahedron.</li>
+</ul>
+
+<p>
+The condition of affine independence ensures the simplex is non-degenerate:
+\(k+1\) points in \(\mathbb{R}^n\) are affinely independent if and only if no
+point lies in the affine span of the others, which requires \(k \leq n\).
+The coefficients \(t_i\) are called <strong>barycentric coordinates</strong>.
+</p>
+
+<div class="definition">
+  <p class="label">Definition 1.2 (Standard \(n\)-simplex)</p>
+  <p>
+    The <strong>standard \(n\)-simplex</strong> \(\Delta^n\) is the convex hull of the standard
+    basis vectors \(e_0, e_1, \ldots, e_n \in \mathbb{R}^{n+1}\):
+    \[
+      \Delta^n = \left\{ (t_0, t_1, \ldots, t_n) \in \mathbb{R}^{n+1} \;\bigg|\; t_i \geq 0,\; \sum_{i=0}^{n} t_i = 1 \right\}.
+    \]
+    Every geometric \(k\)-simplex is affinely isomorphic to \(\Delta^k\).
+  </p>
+</div>
+
+<p>
+For computation, we work with <strong>abstract simplices</strong>: a \(k\)-simplex is simply
+a set of \(k+1\) vertices, with no geometric embedding. This is the approach taken
+in our Rust code, where a simplex is represented as a <code>BTreeSet&lt;usize&gt;</code>.
+</p>
+
+<h3>Code Stitch: The Simplex Struct</h3>
+
+<p>
+The implementation in <code>src/topology/simplex.rs</code> represents an abstract
+simplex as an ordered set of vertex indices. The use of <code>BTreeSet</code>
+ensures vertices are stored in canonical (sorted) order, which makes
+equality comparison and hashing well-defined.
+</p>
+
+<pre><code><span class="comment">/// A k-simplex: an ordered set of (k+1) vertices.</span>
+<span class="comment">/// 0-simplex = vertex, 1-simplex = edge, 2-simplex = triangle, etc.</span>
+<span class="keyword">pub struct</span> <span class="type">Simplex</span> {
+    <span class="comment">// BTreeSet guarantees a canonical ordering of vertices,</span>
+    <span class="comment">// so that {0,1,2} and {2,0,1} represent the same simplex.</span>
+    <span class="comment">// This implements the abstract simplex as a finite set.</span>
+    <span class="keyword">pub</span> vertices: <span class="type">BTreeSet</span>&lt;<span class="type">usize</span>&gt;,
+}
+
+<span class="keyword">impl</span> <span class="type">Simplex</span> {
+    <span class="comment">/// The dimension of the simplex: |vertices| - 1</span>
+    <span class="comment">/// By Definition 1.1, a k-simplex has k+1 vertices,</span>
+    <span class="comment">/// so dim(sigma) = |sigma| - 1.</span>
+    <span class="keyword">pub fn</span> <span class="function">dimension</span>(&amp;<span class="keyword">self</span>) -> <span class="type">isize</span> {
+        <span class="keyword">self</span>.vertices.len() <span class="keyword">as</span> <span class="type">isize</span> - <span class="number">1</span>
+    }
+}
+</code></pre>
+
+<!-- ================================================================ -->
+<h2>1.3 Faces and the Face Lattice</h2>
+
+<div class="definition">
+  <p class="label">Definition 1.3 (Face)</p>
+  <p>
+    A <strong>face</strong> of a simplex \(\sigma = [v_0, \ldots, v_k]\) is any simplex
+    spanned by a non-empty subset of \(\{v_0, \ldots, v_k\}\). If \(\tau\) is a
+    face of \(\sigma\), we write \(\tau \leq \sigma\). A <strong>proper face</strong> satisfies
+    \(\tau < \sigma\) (i.e., \(\tau \neq \sigma\)).
+  </p>
+</div>
+
+<p>
+A \(k\)-simplex has exactly \(\binom{k+1}{j+1}\) faces of dimension \(j\) for
+\(0 \leq j \leq k\), giving a total of \(2^{k+1} - 1\) non-empty faces.
+In particular:
+</p>
+<ul>
+  <li>An edge \([v_0, v_1]\) has 2 vertex faces and 1 edge face (itself): 3 total.</li>
+  <li>A triangle \([v_0, v_1, v_2]\) has 3 vertices, 3 edges, 1 triangle: 7 total.</li>
+  <li>A tetrahedron \([v_0, v_1, v_2, v_3]\) has 4 vertices, 6 edges, 4 triangles, 1 tetrahedron: 15 total.</li>
+</ul>
+
+<div class="definition">
+  <p class="label">Definition 1.4 (Face operator)</p>
+  <p>
+    The \(i\)-th <strong>face operator</strong> (or face map) \(d_i\) removes the \(i\)-th vertex:
+    \[
+      d_i([v_0, \ldots, v_k]) = [v_0, \ldots, \hat{v}_i, \ldots, v_k],
+    \]
+    where \(\hat{v}_i\) denotes omission of \(v_i\). This produces a \((k-1)\)-dimensional
+    face. For a \(k\)-simplex, there are \(k+1\) such codimension-1 faces.
+  </p>
+</div>
+
+<p>
+The face operators satisfy the <strong>simplicial identity</strong>: \(d_i \circ d_j = d_{j+1} \circ d_i\)
+for \(i \leq j\). This will be crucial when we define the boundary operator in Chapter 2.
+</p>
+
+<div class="definition">
+  <p class="label">Definition 1.5 (Face lattice)</p>
+  <p>
+    The <strong>face lattice</strong> (or face poset) of a simplex \(\sigma\) is the partially
+    ordered set \((\mathcal{F}(\sigma), \leq)\) of all faces of \(\sigma\), ordered by
+    inclusion. This is isomorphic to the Boolean lattice \(2^{[k+1]} \setminus \{\emptyset\}\)
+    for a \(k\)-simplex.
+  </p>
+</div>
+
+<h3>Code Stitch: Computing Faces</h3>
+
+<p>
+The <code>faces()</code> method on <code>Simplex</code> computes all codimension-1 faces by
+removing one vertex at a time. This directly implements Definition 1.4:
+</p>
+
+<pre><code><span class="comment">/// Compute all (k-1)-dimensional faces by removing one vertex at a time.</span>
+<span class="comment">/// Returns pairs of (removed_vertex_index, face) for boundary computation.</span>
+<span class="comment">///</span>
+<span class="comment">/// For sigma = [v_0, ..., v_k], we compute</span>
+<span class="comment">///   d_i(sigma) = [v_0, ..., v_{i-1}, v_{i+1}, ..., v_k]</span>
+<span class="comment">/// for each i in 0..=k.</span>
+<span class="comment">///</span>
+<span class="comment">/// The index i is returned alongside the face because the boundary</span>
+<span class="comment">/// operator needs it for the sign (-1)^i (Definition 1.4).</span>
+<span class="keyword">pub fn</span> <span class="function">faces</span>(&amp;<span class="keyword">self</span>) -> <span class="type">Vec</span>&lt;(<span class="type">usize</span>, <span class="type">Simplex</span>)&gt; {
+    <span class="keyword">let</span> verts: <span class="type">Vec</span>&lt;<span class="type">usize</span>&gt; = <span class="keyword">self</span>.vertices.iter().copied().collect();
+    verts
+        .iter()
+        .enumerate()
+        .map(|(i, _)| {
+            <span class="comment">// Remove the i-th vertex to form the face d_i(sigma)</span>
+            <span class="keyword">let</span> face_verts: <span class="type">BTreeSet</span>&lt;<span class="type">usize</span>&gt; = verts
+                .iter()
+                .enumerate()
+                .filter(|(j, _)| *j != i)
+                .map(|(_, &amp;v)| v)
+                .collect();
+            (i, <span class="type">Simplex</span> { vertices: face_verts })
+        })
+        .collect()
+}
+
+<span class="comment">/// Check if this simplex is a face of another.</span>
+<span class="comment">/// tau &lt;= sigma iff tau.vertices is a subset of sigma.vertices.</span>
+<span class="comment">/// This implements the face relation of Definition 1.3.</span>
+<span class="keyword">pub fn</span> <span class="function">is_face_of</span>(&amp;<span class="keyword">self</span>, other: &amp;<span class="type">Simplex</span>) -> <span class="type">bool</span> {
+    <span class="keyword">self</span>.vertices.is_subset(&amp;other.vertices)
+}
+</code></pre>
+
+<!-- ================================================================ -->
+<h2>1.4 Simplicial Complexes</h2>
+
+<div class="definition">
+  <p class="label">Definition 1.6 (Abstract simplicial complex)</p>
+  <p>
+    An <strong>abstract simplicial complex</strong> \(K\) on a vertex set \(V\) is a collection
+    of finite non-empty subsets of \(V\) (called <strong>simplices</strong>) satisfying two axioms:
+  </p>
+  <ol>
+    <li><strong>Closure under faces</strong>: if \(\sigma \in K\) and \(\tau \leq \sigma\) (i.e., \(\tau\) is a
+      face of \(\sigma\)), then \(\tau \in K\).</li>
+    <li><strong>Non-empty vertices</strong>: \(\{v\} \in K\) for every vertex \(v \in V\).</li>
+  </ol>
+  <p>
+    The <strong>dimension</strong> of \(K\) is \(\dim(K) = \max_{\sigma \in K} \dim(\sigma)\).
+  </p>
+</div>
+
+<p>
+The closure axiom is the key requirement: if a triangle \([v_0, v_1, v_2]\) is in
+\(K\), then all its edges \([v_0,v_1], [v_0,v_2], [v_1,v_2]\) and vertices
+\([v_0], [v_1], [v_2]\) must also be in \(K\). Intuitively, you cannot have a
+triangle without its boundary.
+</p>
+
+<div class="theorem">
+  <p class="label">Proposition 1.7 (Intersection axiom)</p>
+  <p>
+    For a geometric simplicial complex (embedded in \(\mathbb{R}^n\)), an additional
+    axiom holds: if \(\sigma, \tau \in K\), then \(\sigma \cap \tau\) is either empty
+    or a common face of both \(\sigma\) and \(\tau\). This ensures simplices "meet nicely."
+  </p>
+</div>
+
+<div class="example">
+  <p class="label">Example 1.8</p>
+  <p>
+    Consider the triangle \(K = \{[0], [1], [2], [0,1], [0,2], [1,2], [0,1,2]\}\).
+    This has 3 vertices (0-simplices), 3 edges (1-simplices), and 1 triangle (2-simplex).
+    Removing the 2-simplex \([0,1,2]\) gives the boundary of the triangle:
+    \(\partial K = \{[0], [1], [2], [0,1], [0,2], [1,2]\}\), which is topologically
+    a circle \(S^1\).
+  </p>
+</div>
+
+<h3>Code Stitch: SimplicialComplex</h3>
+
+<p>
+The <code>SimplicialComplex</code> struct in <code>src/topology/complex.rs</code> enforces
+the closure axiom automatically: inserting any simplex recursively inserts
+all its faces.
+</p>
+
+<pre><code><span class="comment">/// A simplicial complex: a collection of simplices closed under taking faces.</span>
+<span class="keyword">pub struct</span> <span class="type">SimplicialComplex</span> {
+    <span class="comment">// BTreeSet gives canonical ordering for deterministic iteration.</span>
+    simplices: <span class="type">BTreeSet</span>&lt;<span class="type">Simplex</span>&gt;,
+    max_dim: <span class="type">isize</span>,
+}
+
+<span class="keyword">impl</span> <span class="type">SimplicialComplex</span> {
+    <span class="comment">/// Insert a simplex and all its faces (closure property).</span>
+    <span class="comment">/// This enforces axiom (1) of Definition 1.6: if sigma in K</span>
+    <span class="comment">/// and tau &lt;= sigma, then tau in K.</span>
+    <span class="keyword">pub fn</span> <span class="function">insert</span>(&amp;<span class="keyword">mut self</span>, simplex: <span class="type">Simplex</span>) {
+        <span class="keyword">if</span> simplex.dimension() > <span class="keyword">self</span>.max_dim {
+            <span class="keyword">self</span>.max_dim = simplex.dimension();
+        }
+        <span class="comment">// Recursively insert all codimension-1 faces</span>
+        <span class="keyword">let</span> faces: <span class="type">Vec</span>&lt;<span class="type">Simplex</span>&gt; = simplex.faces()
+            .into_iter().map(|(_, f)| f).collect();
+        <span class="keyword">self</span>.simplices.insert(simplex);
+        <span class="keyword">for</span> face <span class="keyword">in</span> faces {
+            <span class="keyword">if</span> !<span class="keyword">self</span>.simplices.contains(&amp;face) {
+                <span class="keyword">self</span>.insert(face); <span class="comment">// recursive: face's faces too</span>
+            }
+        }
+    }
+}
+</code></pre>
+
+<!-- ================================================================ -->
+<h2>1.5 The \(f\)-Vector and the \(h\)-Vector</h2>
+
+<div class="definition">
+  <p class="label">Definition 1.9 (\(f\)-vector)</p>
+  <p>
+    The <strong>\(f\)-vector</strong> of a \(d\)-dimensional simplicial complex \(K\) is the
+    sequence \(\mathbf{f}(K) = (f_0, f_1, \ldots, f_d)\), where \(f_k\) is the
+    number of \(k\)-simplices in \(K\).
+  </p>
+</div>
+
+<div class="example">
+  <p class="label">Example 1.10</p>
+  <p>
+    The filled triangle \([0,1,2]\) has \(\mathbf{f} = (3, 3, 1)\): 3 vertices, 3 edges, 1 triangle.
+  </p>
+  <p>
+    The hollow tetrahedron (boundary of the tetrahedron, homeomorphic to \(S^2\))
+    has \(\mathbf{f} = (4, 6, 4)\): 4 vertices, 6 edges, 4 triangles.
+  </p>
+</div>
+
+<p>
+The \(f\)-vector is not a topological invariant&mdash;different triangulations of the
+same space may have different \(f\)-vectors. However, the alternating sum of
+the \(f\)-vector <em>is</em> a topological invariant: the Euler characteristic.
+</p>
+
+<div class="definition">
+  <p class="label">Definition 1.11 (\(h\)-vector)</p>
+  <p>
+    The <strong>\(h\)-vector</strong> \(\mathbf{h}(K) = (h_0, h_1, \ldots, h_{d+1})\) is defined
+    by the polynomial identity:
+    \[
+      \sum_{k=0}^{d+1} h_k \, x^{d+1-k} = \sum_{k=0}^{d+1} f_{k-1} \, (x-1)^{d+1-k},
+    \]
+    where we set \(f_{-1} = 1\). Equivalently,
+    \[
+      h_j = \sum_{i=0}^{j} (-1)^{j-i} \binom{d+1-i}{j-i} f_{i-1}.
+    \]
+    The \(h\)-vector encodes the same information as the \(f\)-vector but has
+    nicer algebraic properties.
+  </p>
+</div>
+
+<div class="theorem">
+  <p class="label">Theorem 1.12 (Dehn-Sommerville relations)</p>
+  <p>
+    If \(K\) is a simplicial sphere (i.e., the boundary of a simplicial polytope),
+    then the \(h\)-vector is symmetric: \(h_i = h_{d+1-i}\) for all \(i\).
+  </p>
+</div>
+
+<div class="remark">
+  <p class="label">Remark 1.13 (Sonification relevance)</p>
+  <p>
+    In our system, the \(f\)-vector is mapped to <strong>just intonation ratios</strong>.
+    The ratios \(f_1/f_0\), \(f_2/f_1\), etc., determine the harmonic intervals
+    between the oscillator voices in the BettiDrone. For instance, a triangle
+    with \(\mathbf{f} = (3, 3, 1)\) yields the ratio \(3/3 = 1\) (unison) and
+    \(1/3\) (sub-harmonic). The hollow tetrahedron with \(\mathbf{f} = (4, 6, 4)\)
+    yields \(6/4 = 3/2\) (perfect fifth) and \(4/6 = 2/3\) (inverted fifth).
+    Topology generates harmony.
+  </p>
+</div>
+
+<h3>Code Stitch: \(f\)-Vector Computation</h3>
+
+<pre><code><span class="comment">/// The number of k-simplices for each dimension. This is the f-vector.</span>
+<span class="comment">/// f_k = |{sigma in K : dim(sigma) = k}| for k = 0, ..., d.</span>
+<span class="keyword">pub fn</span> <span class="function">f_vector</span>(&amp;<span class="keyword">self</span>) -> <span class="type">Vec</span>&lt;<span class="type">usize</span>&gt; {
+    (<span class="number">0</span>..=<span class="keyword">self</span>.max_dim)
+        .map(|d| <span class="keyword">self</span>.simplices_of_dim(d).len())
+        .collect()
+}
+</code></pre>
+
+<!-- ================================================================ -->
+<h2>1.6 Euler Characteristic</h2>
+
+<div class="definition">
+  <p class="label">Definition 1.14 (Euler characteristic)</p>
+  <p>
+    The <strong>Euler characteristic</strong> of a simplicial complex \(K\) with \(f\)-vector
+    \((f_0, f_1, \ldots, f_d)\) is:
+    \[
+      \chi(K) = \sum_{k=0}^{d} (-1)^k f_k = f_0 - f_1 + f_2 - f_3 + \cdots
+    \]
+  </p>
+</div>
+
+<div class="theorem">
+  <p class="label">Theorem 1.15 (Topological invariance of \(\chi\))</p>
+  <p>
+    The Euler characteristic is a topological invariant: if \(K\) and \(L\) are
+    simplicial complexes with homeomorphic geometric realizations, then
+    \(\chi(K) = \chi(L)\). That is, \(\chi\) depends only on the topology, not
+    on the particular triangulation.
+  </p>
+</div>
+
+<div class="proof">
+  <p class="label">Proof sketch</p>
+  <p>
+    This follows from the Euler-Poincar&eacute; theorem (Theorem 2.20 in Chapter 2):
+    \(\chi(K) = \sum (-1)^k \beta_k\), where the Betti numbers \(\beta_k\) are
+    topological invariants. The proof of that theorem uses the rank-nullity
+    theorem applied to the boundary operators.
+  </p>
+</div>
+
+<div class="example">
+  <p class="label">Example 1.16</p>
+  <p>
+    Some classical Euler characteristics:
+  </p>
+  <ul>
+    <li>\(\chi(\text{point}) = 1\)</li>
+    <li>\(\chi(S^1) = 0\) &mdash; the circle: 3 vertices, 3 edges gives \(3 - 3 = 0\).</li>
+    <li>\(\chi(S^2) = 2\) &mdash; the sphere: the hollow tetrahedron gives \(4 - 6 + 4 = 2\).</li>
+    <li>\(\chi(T^2) = 0\) &mdash; the torus.</li>
+    <li>\(\chi(\Sigma_g) = 2 - 2g\) &mdash; the orientable surface of genus \(g\).</li>
+  </ul>
+</div>
+
+<h3>Code Stitch: Euler Characteristic</h3>
+
+<pre><code><span class="comment">/// Euler characteristic: chi = Sum (-1)^k f_k</span>
+<span class="comment">/// This implements Definition 1.14 directly.</span>
+<span class="comment">/// The alternating sign is achieved by checking k % 2.</span>
+<span class="keyword">pub fn</span> <span class="function">euler_characteristic</span>(&amp;<span class="keyword">self</span>) -> <span class="type">isize</span> {
+    <span class="keyword">self</span>.f_vector()
+        .iter()
+        .enumerate()
+        .map(|(k, &amp;fk)| {
+            <span class="keyword">if</span> k % <span class="number">2</span> == <span class="number">0</span> {
+                fk <span class="keyword">as</span> <span class="type">isize</span>       <span class="comment">// even dimensions: +f_k</span>
+            } <span class="keyword">else</span> {
+                -(fk <span class="keyword">as</span> <span class="type">isize</span>)   <span class="comment">// odd dimensions: -f_k</span>
+            }
+        })
+        .sum()
+}
+</code></pre>
+
+<!-- ================================================================ -->
+<h2>1.7 Star, Link, and Join</h2>
+
+<div class="definition">
+  <p class="label">Definition 1.17 (Star)</p>
+  <p>
+    The <strong>star</strong> of a simplex \(\sigma\) in \(K\) is the set of all simplices
+    that contain \(\sigma\) as a face:
+    \[
+      \mathrm{St}(\sigma) = \{ \tau \in K \mid \sigma \leq \tau \}.
+    \]
+    Note: \(\mathrm{St}(\sigma)\) is not itself a simplicial complex (it is not closed
+    under faces), but the <strong>closed star</strong> \(\overline{\mathrm{St}}(\sigma)\), consisting
+    of \(\mathrm{St}(\sigma)\) together with all faces of simplices in \(\mathrm{St}(\sigma)\),
+    is a subcomplex of \(K\).
+  </p>
+</div>
+
+<div class="definition">
+  <p class="label">Definition 1.18 (Link)</p>
+  <p>
+    The <strong>link</strong> of \(\sigma\) in \(K\) is:
+    \[
+      \mathrm{Lk}(\sigma) = \{ \tau \in \overline{\mathrm{St}}(\sigma) \mid \tau \cap \sigma = \emptyset \}.
+    \]
+    Intuitively, the link is the "boundary of the star" after removing \(\sigma\) itself.
+    The link encodes the local topology around \(\sigma\).
+  </p>
+</div>
+
+<div class="theorem">
+  <p class="label">Proposition 1.19</p>
+  <p>
+    If \(K\) is a triangulation of a manifold \(M\), then for every vertex \(v\),
+    the link \(\mathrm{Lk}(v)\) is a triangulation of \(S^{d-1}\), where \(d = \dim M\).
+    This is the combinatorial analogue of the fact that a manifold is locally
+    Euclidean.
+  </p>
+</div>
+
+<div class="definition">
+  <p class="label">Definition 1.20 (Join)</p>
+  <p>
+    The <strong>join</strong> of two simplicial complexes \(K\) and \(L\) on disjoint vertex sets
+    is:
+    \[
+      K * L = \{ \sigma \cup \tau \mid \sigma \in K,\; \tau \in L \} \cup K \cup L.
+    \]
+    The join of an \(m\)-simplex and an \(n\)-simplex is an \((m+n+1)\)-simplex.
+    For example, the join of two edges (1-simplices) is a tetrahedron (3-simplex).
+  </p>
+</div>
+
+<h3>Code Stitch: Star and Link</h3>
+
+<pre><code><span class="comment">/// Star of a simplex sigma: all simplices tau such that sigma is a face of tau.</span>
+<span class="comment">/// Implements Definition 1.17: St(sigma) = {tau in K | sigma &lt;= tau}.</span>
+<span class="keyword">pub fn</span> <span class="function">star</span>(&amp;<span class="keyword">self</span>, sigma: &amp;<span class="type">Simplex</span>) -> <span class="type">Vec</span>&lt;&amp;<span class="type">Simplex</span>&gt; {
+    <span class="keyword">self</span>.simplices
+        .iter()
+        .filter(|tau| sigma.is_face_of(tau))
+        .collect()
+}
+
+<span class="comment">/// Link of a simplex sigma: faces of St(sigma) disjoint from sigma.</span>
+<span class="comment">/// Implements Definition 1.18: Lk(sigma) = {tau in cl(St(sigma)) | tau cap sigma = empty}.</span>
+<span class="keyword">pub fn</span> <span class="function">link</span>(&amp;<span class="keyword">self</span>, sigma: &amp;<span class="type">Simplex</span>) -> <span class="type">Vec</span>&lt;&amp;<span class="type">Simplex</span>&gt; {
+    <span class="keyword">let</span> star = <span class="keyword">self</span>.star(sigma);
+    <span class="keyword">let</span> sigma_verts = &amp;sigma.vertices;
+    star.iter()
+        .flat_map(|tau| tau.faces().into_iter().map(|(_, f)| f))
+        .filter(|face| face.vertices.is_disjoint(sigma_verts))
+        .filter(|face| <span class="keyword">self</span>.simplices.contains(face))
+        .collect()
+}
+</code></pre>
+
+<!-- ================================================================ -->
+<h2>1.8 The Vietoris-Rips Complex</h2>
+
+<p>
+Given a finite metric space (or a point cloud \(P \subset \mathbb{R}^d\) with the
+Euclidean metric), we need a systematic way to build a simplicial complex that
+captures the topology of the underlying space. The two classical constructions
+are the Vietoris-Rips complex and the &Ccaron;ech complex.
+</p>
+
+<div class="definition">
+  <p class="label">Definition 1.21 (Vietoris-Rips complex)</p>
+  <p>
+    Given a finite metric space \((P, d)\) and a scale parameter \(\varepsilon > 0\),
+    the <strong>Vietoris-Rips complex</strong> \(\mathrm{VR}(P, \varepsilon)\) is the abstract
+    simplicial complex whose \(k\)-simplices are subsets \(\{p_0, \ldots, p_k\} \subseteq P\)
+    with the property that all pairwise distances are at most \(\varepsilon\):
+    \[
+      \sigma = \{p_0, \ldots, p_k\} \in \mathrm{VR}(P, \varepsilon)
+      \quad \iff \quad
+      d(p_i, p_j) \leq \varepsilon \;\text{ for all } 0 \leq i < j \leq k.
+    \]
+  </p>
+</div>
+
+<p>
+The Vietoris-Rips complex is completely determined by its 1-skeleton (the graph of
+edges): a set of vertices forms a simplex if and only if every pair is connected
+by an edge. This is the <strong>clique complex</strong> (or flag complex) of the proximity graph.
+</p>
+
+<div class="definition">
+  <p class="label">Definition 1.22 (&Ccaron;ech complex)</p>
+  <p>
+    The <strong>&Ccaron;ech complex</strong> \(\check{C}(P, \varepsilon)\) consists of all subsets
+    \(\{p_0, \ldots, p_k\}\) whose closed \(\varepsilon/2\)-balls have a common intersection:
+    \[
+      \{p_0, \ldots, p_k\} \in \check{C}(P, \varepsilon)
+      \quad \iff \quad
+      \bigcap_{i=0}^{k} \overline{B}(p_i, \varepsilon/2) \neq \emptyset.
+    \]
+  </p>
+</div>
+
+<div class="theorem">
+  <p class="label">Theorem 1.23 (Nerve theorem / &Ccaron;ech vs. Rips interleaving)</p>
+  <p>
+    By the nerve theorem, the &Ccaron;ech complex has the same homotopy type as the
+    union of balls \(\bigcup_i B(p_i, \varepsilon/2)\). The Vietoris-Rips complex
+    and &Ccaron;ech complex are interleaved:
+    \[
+      \check{C}(P, \varepsilon) \subseteq \mathrm{VR}(P, \varepsilon) \subseteq \check{C}(P, \sqrt{2}\varepsilon).
+    \]
+    In particular, they agree on the 1-skeleton and on the homotopy type
+    in low dimensions for "generic" point clouds.
+  </p>
+</div>
+
+<div class="remark">
+  <p class="label">Remark 1.24</p>
+  <p>
+    We use the Vietoris-Rips complex rather than the &Ccaron;ech complex because it
+    is computationally simpler: checking pairwise distances is \(O(n^2)\), while
+    computing common intersections of balls requires geometric predicates.
+    The interleaving theorem guarantees that the topological information we
+    extract is qualitatively correct.
+  </p>
+</div>
+
+<h3>Code Stitch: Vietoris-Rips Construction</h3>
+
+<p>
+The <code>vietoris_rips</code> function builds the complex incrementally: first all
+vertices, then edges between points within the radius, then triangles (cliques
+of three edges), then tetrahedra (cliques of six edges). This implements
+Definition 1.21 up to dimension 3.
+</p>
+
+<pre><code><span class="comment">/// Build a Vietoris-Rips complex from a point cloud at a given radius.</span>
+<span class="comment">/// Implements Definition 1.21: sigma in VR(P, r) iff d(p_i, p_j) &lt;= r</span>
+<span class="comment">/// for all pairs i, j in sigma.</span>
+<span class="keyword">pub fn</span> <span class="function">vietoris_rips</span>(points: &amp;[[<span class="type">f64</span>; <span class="number">2</span>]], radius: <span class="type">f64</span>) -> <span class="type">Self</span> {
+    <span class="keyword">let</span> n = points.len();
+    <span class="keyword">let mut</span> complex = <span class="type">Self</span>::new();
+
+    <span class="comment">// 0-simplices: every point is a vertex</span>
+    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="number">0</span>..n {
+        complex.insert_simplex(&amp;[i]);
+    }
+
+    <span class="comment">// Euclidean distance function</span>
+    <span class="keyword">let</span> dist = |a: &amp;[<span class="type">f64</span>; <span class="number">2</span>], b: &amp;[<span class="type">f64</span>; <span class="number">2</span>]| {
+        ((a[<span class="number">0</span>] - b[<span class="number">0</span>]).powi(<span class="number">2</span>) + (a[<span class="number">1</span>] - b[<span class="number">1</span>]).powi(<span class="number">2</span>)).sqrt()
+    };
+
+    <span class="comment">// 1-simplices (edges): insert [i,j] when d(p_i, p_j) &lt;= r</span>
+    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="number">0</span>..n {
+        <span class="keyword">for</span> j <span class="keyword">in</span> (i + <span class="number">1</span>)..n {
+            <span class="keyword">if</span> dist(&amp;points[i], &amp;points[j]) &lt;= radius {
+                complex.insert_simplex(&amp;[i, j]);
+            }
+        }
+    }
+
+    <span class="comment">// 2-simplices (triangles): the clique condition —</span>
+    <span class="comment">// all three edges must exist (all pairwise distances &lt;= r)</span>
+    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="number">0</span>..n {
+        <span class="keyword">for</span> j <span class="keyword">in</span> (i+<span class="number">1</span>)..n {
+            <span class="keyword">if</span> dist(&amp;points[i], &amp;points[j]) > radius { <span class="keyword">continue</span>; }
+            <span class="keyword">for</span> k <span class="keyword">in</span> (j+<span class="number">1</span>)..n {
+                <span class="keyword">if</span> dist(&amp;points[i], &amp;points[k]) &lt;= radius
+                    &amp;&amp; dist(&amp;points[j], &amp;points[k]) &lt;= radius
+                {
+                    complex.insert_simplex(&amp;[i, j, k]);
+                }
+            }
+        }
+    }
+
+    <span class="comment">// 3-simplices (tetrahedra): all 6 edges must exist</span>
+    <span class="comment">// (all C(4,2) = 6 pairwise distances &lt;= r)</span>
+    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="number">0</span>..n {
+        <span class="keyword">for</span> j <span class="keyword">in</span> (i+<span class="number">1</span>)..n {
+            <span class="keyword">for</span> k <span class="keyword">in</span> (j+<span class="number">1</span>)..n {
+                <span class="keyword">for</span> l <span class="keyword">in</span> (k+<span class="number">1</span>)..n {
+                    <span class="keyword">let</span> all_close =
+                        dist(&amp;points[i], &amp;points[j]) &lt;= radius
+                        &amp;&amp; dist(&amp;points[i], &amp;points[k]) &lt;= radius
+                        &amp;&amp; dist(&amp;points[i], &amp;points[l]) &lt;= radius
+                        &amp;&amp; dist(&amp;points[j], &amp;points[k]) &lt;= radius
+                        &amp;&amp; dist(&amp;points[j], &amp;points[l]) &lt;= radius
+                        &amp;&amp; dist(&amp;points[k], &amp;points[l]) &lt;= radius;
+                    <span class="keyword">if</span> all_close {
+                        complex.insert_simplex(&amp;[i, j, k, l]);
+                    }
+                }
+            }
+        }
+    }
+
+    complex
+}
+</code></pre>
+
+<!-- ================================================================ -->
+<h2>1.9 Interactive Demonstration</h2>
+
+<p>
+The canvas below shows a simplicial complex built from a point cloud. Click to
+add points. The Vietoris-Rips complex is drawn at the current radius. Observe
+how the complex changes as points are added: edges appear when points are close,
+triangles fill in when three points are mutually close.
+</p>
+
+<canvas id="simplexCanvas" width="700" height="420"></canvas>
+<p style="color: var(--fg-dim); font-size: 0.85em; text-align: center;">
+  Click to add points. Drag the slider to change the radius. Edge color indicates distance.
+</p>
+<div style="text-align: center; margin: 1em 0;">
+  <label style="color: var(--fg-dim);">Radius: <span id="radiusVal">80</span>px</label><br>
+  <input type="range" id="radiusSlider" min="10" max="250" value="80" style="width: 300px; margin-top: 0.5em;">
+  <br>
+  <button id="clearBtn" style="margin-top: 0.8em; padding: 0.4em 1.2em; background: var(--bg-code); color: var(--fg); border: 1px solid var(--border); border-radius: 3px; cursor: pointer; font-family: inherit;">Clear</button>
+</div>
+<div id="complexInfo" style="text-align: center; color: var(--accent); font-size: 0.9em; margin: 1em 0;"></div>
+
+<script>
+(function() {
+  const canvas = document.getElementById('simplexCanvas');
+  const ctx = canvas.getContext('2d');
+  const slider = document.getElementById('radiusSlider');
+  const radiusVal = document.getElementById('radiusVal');
+  const info = document.getElementById('complexInfo');
+  const clearBtn = document.getElementById('clearBtn');
+  let points = [];
+
+  function dist(a, b) {
+    return Math.sqrt((a[0]-b[0])**2 + (a[1]-b[1])**2);
+  }
+
+  function draw() {
+    const r = parseFloat(slider.value);
+    radiusVal.textContent = r;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#050508';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    const n = points.length;
+    let edges = [], triangles = [];
+    let f = [n, 0, 0];
+
+    // Find edges
+    for (let i = 0; i < n; i++) {
+      for (let j = i+1; j < n; j++) {
+        if (dist(points[i], points[j]) <= r) {
+          edges.push([i, j]);
+          f[1]++;
+        }
+      }
+    }
+
+    // Find triangles
+    for (let i = 0; i < n; i++) {
+      for (let j = i+1; j < n; j++) {
+        if (dist(points[i], points[j]) > r) continue;
+        for (let k = j+1; k < n; k++) {
+          if (dist(points[i], points[k]) <= r && dist(points[j], points[k]) <= r) {
+            triangles.push([i, j, k]);
+            f[2]++;
+          }
+        }
+      }
+    }
+
+    // Draw triangles (filled)
+    for (const [i, j, k] of triangles) {
+      ctx.beginPath();
+      ctx.moveTo(points[i][0], points[i][1]);
+      ctx.lineTo(points[j][0], points[j][1]);
+      ctx.lineTo(points[k][0], points[k][1]);
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(122, 162, 247, 0.08)';
+      ctx.fill();
+    }
+
+    // Draw edges
+    for (const [i, j] of edges) {
+      const d = dist(points[i], points[j]);
+      const t = d / r;
+      ctx.beginPath();
+      ctx.moveTo(points[i][0], points[i][1]);
+      ctx.lineTo(points[j][0], points[j][1]);
+      ctx.strokeStyle = `rgba(122, 162, 247, ${0.8 - t * 0.5})`;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+
+    // Draw vertices
+    for (const p of points) {
+      ctx.beginPath();
+      ctx.arc(p[0], p[1], 4, 0, Math.PI * 2);
+      ctx.fillStyle = '#e0af68';
+      ctx.fill();
+    }
+
+    // Info
+    const chi = f[0] - f[1] + f[2];
+    info.textContent = n > 0
+      ? `f-vector = (${f[0]}, ${f[1]}, ${f[2]})   |   chi = ${f[0]} - ${f[1]} + ${f[2]} = ${chi}`
+      : 'Click on the canvas to add points.';
+  }
+
+  canvas.addEventListener('click', function(e) {
+    const rect = canvas.getBoundingClientRect();
+    points.push([e.clientX - rect.left, e.clientY - rect.top]);
+    draw();
+  });
+  slider.addEventListener('input', draw);
+  clearBtn.addEventListener('click', function() { points = []; draw(); });
+  draw();
+})();
+</script>
+
+<!-- ================================================================ -->
+<h2>1.10 The Boundary Matrix</h2>
+
+<p>
+The boundary matrix is the bridge between the combinatorial structure of the
+simplicial complex and the algebraic computation of homology (Chapter 2). We
+introduce it here because it is computed from the complex.
+</p>
+
+<div class="definition">
+  <p class="label">Definition 1.25 (Boundary matrix)</p>
+  <p>
+    Fix an ordering of the \(k\)-simplices \(\sigma_1^{(k)}, \ldots, \sigma_{f_k}^{(k)}\)
+    and the \((k-1)\)-simplices \(\sigma_1^{(k-1)}, \ldots, \sigma_{f_{k-1}}^{(k-1)}\).
+    The <strong>boundary matrix</strong> \([\partial_k]\) is the \(f_{k-1} \times f_k\) matrix
+    with entries in the coefficient field (we use \(\mathbb{F}_2 = \mathbb{Z}/2\mathbb{Z}\))
+    defined by:
+    \[
+      [\partial_k]_{ij} = \begin{cases}
+        1 & \text{if } \sigma_i^{(k-1)} \text{ is a face of } \sigma_j^{(k)} \\
+        0 & \text{otherwise.}
+      \end{cases}
+    \]
+    Over \(\mathbb{F}_2\), the signs \((-1)^i\) in the oriented boundary formula vanish
+    (since \(-1 \equiv 1 \pmod{2}\)), so we only track incidence.
+  </p>
+</div>
+
+<h3>Code Stitch: Boundary Matrix</h3>
+
+<pre><code><span class="comment">/// Compute boundary matrix d_k : C_k -> C_{k-1} over Z/2Z.</span>
+<span class="comment">/// Returns a sparse representation: list of (row, col) pairs</span>
+<span class="comment">/// where the matrix entry is 1 mod 2.</span>
+<span class="comment">///</span>
+<span class="comment">/// The rows are indexed by (k-1)-simplices, columns by k-simplices.</span>
+<span class="comment">/// Entry (i, j) = 1 means the i-th (k-1)-simplex is a face of</span>
+<span class="comment">/// the j-th k-simplex (Definition 1.25).</span>
+<span class="keyword">pub fn</span> <span class="function">boundary_matrix_z2</span>(&amp;<span class="keyword">self</span>, k: <span class="type">isize</span>) -> <span class="type">BoundaryMatrix</span> {
+    <span class="keyword">let</span> k_simplices = <span class="keyword">self</span>.simplices_of_dim(k);
+    <span class="keyword">let</span> k_minus_1_simplices = <span class="keyword">self</span>.simplices_of_dim(k - <span class="number">1</span>);
+
+    <span class="comment">// Build index lookup: (k-1)-simplex -> row index</span>
+    <span class="keyword">let</span> row_index: <span class="type">HashMap</span>&lt;&amp;<span class="type">Simplex</span>, <span class="type">usize</span>&gt; = k_minus_1_simplices
+        .iter().enumerate()
+        .map(|(i, s)| (*s, i)).collect();
+
+    <span class="keyword">let</span> rows = k_minus_1_simplices.len();
+    <span class="keyword">let</span> cols = k_simplices.len();
+    <span class="keyword">let mut</span> entries = <span class="type">Vec</span>::new();
+
+    <span class="comment">// For each k-simplex (column j), find its faces (row i)</span>
+    <span class="keyword">for</span> (j, sigma) <span class="keyword">in</span> k_simplices.iter().enumerate() {
+        <span class="keyword">for</span> (_, face) <span class="keyword">in</span> sigma.faces() {
+            <span class="keyword">if let</span> <span class="type">Some</span>(&amp;i) = row_index.get(&amp;face) {
+                entries.push((i, j)); <span class="comment">// M[i][j] = 1 mod 2</span>
+            }
+        }
+    }
+
+    <span class="type">BoundaryMatrix</span> { rows, cols, entries }
+}
+</code></pre>
+
+<!-- ================================================================ -->
+<h2>Why Each Concept Matters: Applications Trace</h2>
+
+<p>
+Every definition and theorem in this chapter exists for a reason. Here we trace each concept
+to its applications &mdash; in our sonification engine, in the broader mathematical landscape,
+and in the sciences. The goal is to make visible the thread from abstract definition to
+concrete utility.
+</p>
+
+<div class="remark">
+  <p class="label">Application Trace: The Simplex (Definitions 1.1&ndash;1.2)</p>
+  <p>
+    <strong>Why simplices?</strong> A \(k\)-simplex is the simplest possible \(k\)-dimensional
+    geometric object: a point, an edge, a triangle, a tetrahedron. Any convex polytope can be
+    decomposed into simplices (triangulation), and any topological space can be approximated
+    by a simplicial complex (simplicial approximation theorem). Simplices are the &ldquo;atoms&rdquo;
+    of discrete geometry.
+  </p>
+  <p>
+    <strong>In engineering:</strong> Finite element methods (FEM) decompose domains into simplices
+    (triangular meshes in 2D, tetrahedral meshes in 3D) to solve PDEs numerically. Computer
+    graphics uses triangle meshes universally. Delaunay triangulations are simplicial complexes
+    optimized for interpolation quality.
+  </p>
+  <p>
+    <strong>In our engine:</strong> The <code>Simplex</code> struct is the atomic building block.
+    Its <code>dimension()</code> method (Definition 1.1: dimension = |vertices| &minus; 1) determines
+    how high-dimensional the topology can get. Its <code>faces()</code> method (Definition 1.4)
+    is the workhorse for boundary computation, which in turn drives all of homology.
+  </p>
+</div>
+
+<div class="remark">
+  <p class="label">Application Trace: Faces and the Face Lattice (Definitions 1.3&ndash;1.5)</p>
+  <p>
+    <strong>Why faces?</strong> The face relation \(\tau \leq \sigma\) (Definition 1.3) organizes
+    simplices into a <strong>partial order</strong>. The face lattice (Definition 1.5) is this
+    poset &mdash; it encodes the complete combinatorial structure of a simplicial complex.
+    Two complexes are isomorphic as abstract simplicial complexes if and only if their face
+    lattices are isomorphic as posets.
+  </p>
+  <p>
+    <strong>Why the face operator \(d_i\)?</strong> The \(i\)-th face operator
+    \(d_i([v_0, \ldots, v_k]) = [v_0, \ldots, \hat{v}_i, \ldots, v_k]\) (Definition 1.4)
+    removes the \(i\)-th vertex. The alternating sum \(\partial_k = \sum (-1)^i d_i\)
+    becomes the boundary operator in Chapter 2. The signs \((-1)^i\) are not arbitrary:
+    they encode the <em>orientation</em> of each face relative to the simplex. Without the
+    correct signs, \(\partial^2 \neq 0\) and homology would be undefined.
+  </p>
+  <p>
+    <strong>In our engine:</strong> <code>Simplex::faces()</code> returns pairs
+    <code>(i, face)</code> where \(i\) is the index of the removed vertex. The index \(i\)
+    is propagated to the boundary matrix construction in <code>boundary_matrix_z2()</code>,
+    where it determines the sign (though over \(\mathbb{F}_2\), all signs are 1).
+  </p>
+</div>
+
+<div class="remark">
+  <p class="label">Application Trace: The Simplicial Complex (Definition 1.6)</p>
+  <p>
+    <strong>Why the closure axiom?</strong> Definition 1.6 requires that if \(\sigma \in K\)
+    and \(\tau \leq \sigma\), then \(\tau \in K\). This is not a technical convenience &mdash;
+    it is a <em>topological necessity</em>. Without it, the geometric realization \(|K|\) would
+    have &ldquo;dangling&rdquo; simplices: a triangle whose edges aren&rsquo;t in the complex,
+    which is geometrically nonsensical. The closure axiom ensures that \(|K|\) is a well-defined
+    topological space.
+  </p>
+  <p>
+    <strong>In computer science:</strong> Simplicial complexes model: hypergraphs (higher-order
+    networks beyond pairwise interactions), database schemas (the nerve of a relational schema
+    is a simplicial complex), and independence systems in combinatorial optimization.
+  </p>
+  <p>
+    <strong>In our engine:</strong> <code>SimplicialComplex::insert()</code> automatically inserts
+    all faces of any added simplex, enforcing the closure axiom. This is the function that makes
+    the complex well-formed. Without it, the boundary matrices would have missing rows and the
+    homology computation would be incorrect.
+  </p>
+</div>
+
+<div class="remark">
+  <p class="label">Application Trace: The \(f\)-vector and \(h\)-vector (Definitions 1.9, 1.11)</p>
+  <p>
+    <strong>Why the \(f\)-vector?</strong> The \(f\)-vector \((f_0, f_1, \ldots, f_d)\) counts
+    simplices by dimension: \(f_0\) vertices, \(f_1\) edges, \(f_2\) triangles, etc. It is the
+    crudest &ldquo;fingerprint&rdquo; of a complex &mdash; not a topological invariant (different
+    triangulations of the same space have different \(f\)-vectors), but a <strong>combinatorial</strong>
+    invariant that constrains the topology.
+  </p>
+  <p>
+    <strong>Why the \(h\)-vector?</strong> The \(h\)-vector is a linear transformation of the
+    \(f\)-vector that has better algebraic properties. The Dehn-Sommerville relations
+    (Theorem 1.12) constrain the \(h\)-vector of a simplicial sphere, which constrains
+    which \(f\)-vectors are realizable. This is the starting point of the \(g\)-conjecture
+    (now theorem, proved by Adiprasito 2018) &mdash; one of the deepest results in
+    combinatorial topology.
+  </p>
+  <p>
+    <strong>In our engine:</strong> <code>SimplicialComplex::f_vector()</code> drives the
+    just-intonation tuning of the <code>BettiDrone</code>. The ratios \(f_1/f_0\), \(f_2/f_1\), etc.
+    become frequency ratios between oscillators. This mapping is natural: the \(f\)-vector measures
+    the &ldquo;combinatorial density&rdquo; at each dimension, and frequency ratios are the
+    harmonic-series analogue of density. A complex with many edges relative to vertices
+    (\(f_1/f_0\) large) produces a wider harmonic spread.
+  </p>
+</div>
+
+<div class="remark">
+  <p class="label">Application Trace: Euler Characteristic (Definition 1.14, Theorem 1.15)</p>
+  <p>
+    <strong>Why is \(\chi\) topologically invariant?</strong> The Euler characteristic
+    \(\chi = \sum (-1)^k f_k\) depends on the specific triangulation, yet Theorem 1.15
+    says it doesn&rsquo;t change under refinement. This is remarkable: you can subdivide a
+    triangle into thousands of sub-triangles, change every \(f_k\), and \(\chi\) remains the
+    same. The proof (deferred to Chapter 2) uses the Euler-Poincar&eacute; theorem:
+    \(\chi = \sum (-1)^k \beta_k\), and the Betti numbers are manifestly topological
+    invariants.
+  </p>
+  <p>
+    <strong>Applications across mathematics:</strong>
+  </p>
+  <ul style="margin: 0.3em 0 0.5em 1.5em;">
+    <li><strong>Gauss-Bonnet:</strong> \(\int K\,dA = 2\pi\chi\). Total Gaussian curvature is topological.</li>
+    <li><strong>Index theory:</strong> The Atiyah-Singer index theorem generalizes \(\chi\) to
+      elliptic operators on manifolds, connecting analysis, geometry, and topology.</li>
+    <li><strong>Euler calculus:</strong> Schapira, Viro, and Ghrist developed integration with respect
+      to Euler characteristic (\(\int f\,d\chi\)), with applications to sensor networks and
+      target counting.</li>
+    <li><strong>Algebraic geometry:</strong> \(\chi\) of a variety controls its arithmetic via the
+      Weil conjectures (proved by Deligne 1974).</li>
+  </ul>
+  <p>
+    <strong>In our engine:</strong> \(\chi\) is the single scalar that parameterizes
+    <code>CurvatureReverb</code>. Via Gauss-Bonnet, positive \(\chi\) means positive average
+    curvature (converging geodesics, focused sound), negative \(\chi\) means negative curvature
+    (diverging geodesics, diffuse sound). This is the most physically motivated mapping in the
+    entire engine.
+  </p>
+</div>
+
+<div class="remark">
+  <p class="label">Application Trace: Star and Link (Definitions 1.17&ndash;1.18)</p>
+  <p>
+    <strong>Why star and link?</strong> The star \(\mathrm{St}(\sigma)\) collects everything
+    &ldquo;touching&rdquo; \(\sigma\); the link \(\mathrm{Lk}(\sigma)\) is the boundary of this
+    neighborhood. The link is the local &ldquo;shape&rdquo; of the complex near \(\sigma\).
+  </p>
+  <p>
+    <strong>The link detects manifold structure:</strong> A simplicial complex is a combinatorial
+    manifold if and only if the link of every vertex is a sphere (or a disk at the boundary).
+    If \(\mathrm{Lk}(v)\) is a circle, the complex looks like a surface near \(v\). If
+    \(\mathrm{Lk}(v)\) is a sphere \(S^2\), it looks like a 3-manifold near \(v\).
+    Non-manifold points (singularities) have exotic links.
+  </p>
+  <p>
+    <strong>In data analysis:</strong> The link of a vertex in a VR complex tells you about
+    the <em>local</em> topology of the data near that point. This is used in local homology
+    estimation, manifold learning (detecting the local dimension), and singularity detection.
+  </p>
+  <p>
+    <strong>In our engine:</strong> <code>star()</code> and <code>link()</code> are available for
+    future extensions: per-vertex curvature estimation (via the angle defect formula
+    \(\kappa(v) = 2\pi - \sum_{\sigma \ni v} \theta_\sigma(v)\)) and local sonification
+    parameters that vary spatially across the complex.
+  </p>
+</div>
+
+<div class="remark">
+  <p class="label">Application Trace: Vietoris-Rips Complex (Definitions 1.21&ndash;1.22, Theorem 1.23)</p>
+  <p>
+    <strong>Why VR and not &#268;ech?</strong> Both constructions build a simplicial complex from a
+    point cloud at a scale \(r\). The &#268;ech complex uses the nerve of balls \(B(p_i, r)\) and
+    is theoretically ideal (the Nerve theorem guarantees homotopy equivalence to the union of balls).
+    But &#268;ech is computationally expensive: determining whether \(k+1\) balls have a common
+    intersection point requires solving a minimax problem in \(\mathbb{R}^d\).
+  </p>
+  <p>
+    The VR complex only checks pairwise distances: \(\sigma \in \mathrm{VR}(P, r)\) iff all
+    pairwise distances within \(\sigma\) are \(\leq r\). This is a <em>flag complex</em>
+    (determined entirely by its 1-skeleton), so it can be built from the pairwise distance matrix
+    alone. The price: VR is a coarser approximation. The interleaving theorem (1.23) quantifies
+    the error: \(\check{C}(P, r) \subseteq \mathrm{VR}(P, r) \subseteq \check{C}(P, 2r)\).
+  </p>
+  <p>
+    <strong>In practice:</strong> VR is the universal default in TDA software (Ripser, GUDHI, Dionysus)
+    because the flag complex property enables dramatic algorithmic optimizations. Our
+    <code>vietoris_rips()</code> implements the naive construction (check all \(k\)-tuples);
+    Ripser achieves the same result orders of magnitude faster using implicit matrix representation
+    and apparent pairs.
+  </p>
+  <p>
+    <strong>In our engine:</strong> <code>SimplicialComplex::vietoris_rips()</code> is the entry point
+    for point cloud sonification. The user clicks points on the canvas, adjusts the radius slider,
+    and the VR complex updates in real time. The radius parameter is the <em>filtration parameter</em>
+    of Chapter 3 &mdash; sweeping it produces the persistence diagram.
+  </p>
+</div>
+
+<div class="remark">
+  <p class="label">Application Trace: The Boundary Matrix (Definition 1.25)</p>
+  <p>
+    <strong>Why the boundary matrix?</strong> The boundary matrix \([\partial_k]\) is the
+    <em>computational representation</em> of the boundary operator \(\partial_k: C_k \to C_{k-1}\).
+    Once we have the boundary matrices for all dimensions, <em>all</em> of homology reduces to
+    linear algebra: Betti numbers come from ranks, persistence pairs come from column reduction,
+    and the Hodge Laplacian is \(L_k = \partial_{k+1}\partial_{k+1}^T + \partial_k^T\partial_k\).
+  </p>
+  <p>
+    <strong>The matrix encodes topology as algebra:</strong> Every topological question about the
+    complex can be answered by matrix operations on \([\partial_k]\). This is the fundamental
+    insight of computational topology: topology is computable because it reduces to linear algebra.
+  </p>
+  <p>
+    <strong>In our engine:</strong> <code>boundary_matrix_z2()</code> produces the sparse matrix whose
+    rank, computed by <code>rank_z2()</code>, feeds into the Betti number calculation. The entire
+    downstream audio engine &mdash; every instrument, every effect &mdash; ultimately depends on the
+    correctness of this matrix.
+  </p>
+</div>
+
+<!-- ================================================================ -->
+<h2>Exercises</h2>
+
+<div class="exercise">
+  <p class="label">Exercise 1.1</p>
+  <p>
+    Compute the \(f\)-vector and Euler characteristic of the octahedron
+    (the boundary of the regular octahedron in \(\mathbb{R}^3\), which
+    triangulates \(S^2\)).
+  </p>
+</div>
+
+<div class="exercise">
+  <p class="label">Exercise 1.2</p>
+  <p>
+    Show that for any \(d\)-dimensional simplicial complex \(K\), the number of edges
+    satisfies \(f_1 \leq \binom{f_0}{2}\). When does equality hold? What does this
+    mean for the Vietoris-Rips complex?
+  </p>
+</div>
+
+<div class="exercise">
+  <p class="label">Exercise 1.3</p>
+  <p>
+    Let \(P = \{(0,0), (1,0), (0,1), (1,1)\}\) be the vertices of the unit square.
+    For what values of the radius \(\varepsilon\) does \(\mathrm{VR}(P, \varepsilon)\) have:
+    (a) 4 components, (b) 1 component with a loop, (c) 1 component with no loop?
+    Compute \(\mathbf{f}\) and \(\chi\) at each stage.
+  </p>
+</div>
+
+<div class="exercise">
+  <p class="label">Exercise 1.4</p>
+  <p>
+    Prove that the Vietoris-Rips complex is a <strong>flag complex</strong>: \(\sigma \in \mathrm{VR}(P,\varepsilon)\)
+    if and only if every edge of \(\sigma\) is in \(\mathrm{VR}(P,\varepsilon)\). Show that the
+    &Ccaron;ech complex does <em>not</em> have this property in general.
+  </p>
+</div>
+
+<div class="exercise">
+  <p class="label">Exercise 1.5</p>
+  <p>
+    The <strong>Kruskal count</strong> of a simplicial complex is \(\sum_{k=0}^{d} f_k\). Compute
+    this for the Vietoris-Rips complex of \(n\) evenly-spaced points on a circle
+    of radius 1, as a function of \(\varepsilon\). At what \(\varepsilon\) is the count maximized?
+  </p>
+</div>
+
+<div class="exercise">
+  <p class="label">Exercise 1.6 (Sonification)</p>
+  <p>
+    The BettiDrone uses the ratios \(f_{k+1}/f_k\) from the \(f\)-vector as just
+    intonation intervals. Compute these ratios for: (a) the filled triangle,
+    (b) the hollow tetrahedron, (c) the octahedron. Which produces the most
+    "consonant" harmony, and why?
+  </p>
+</div>
+
+<div class="exercise">
+  <p class="label">Exercise 1.7 (Implementation)</p>
+  <p>
+    The current <code>vietoris_rips</code> implementation has time complexity
+    \(O(n^4)\) (it checks all 4-tuples for tetrahedra). Describe an algorithm
+    using the flag complex property (Exercise 1.4) that achieves \(O(n^2 + |\text{VR}|)\)
+    time, where \(|\text{VR}|\) is the number of simplices in the output. Hint: use
+    the Bron-Kerbosch algorithm for maximal cliques.
+  </p>
+</div>
+
+<hr>
+
+<!-- ================================================================ -->
+<h2>References</h2>
+
+<p>The material in this chapter is standard and can be found in any introduction to
+algebraic topology or combinatorial topology. The following are the canonical references,
+ordered roughly by accessibility.</p>
+
+<h3>Primary Textbooks</h3>
+
+<ol style="margin: 0.5rem 0 1.5rem 2rem; line-height: 2.2;">
+  <li><strong>Hatcher, A.</strong> <em>Algebraic Topology</em>. Cambridge University Press, 2002.
+    Chapter 2 (Homology) begins with an excellent treatment of simplicial and singular complexes.
+    Freely available at <code>pi.math.cornell.edu/~hatcher/AT/ATpage.html</code>.
+    <br><span style="color:var(--fg-dim);">The standard graduate text. Our definitions of simplicial complex, face, and star follow Hatcher's conventions.</span></li>
+
+  <li><strong>Munkres, J.R.</strong> <em>Elements of Algebraic Topology</em>. Addison-Wesley, 1984. ISBN 0-201-04586-9.
+    <br><span style="color:var(--fg-dim);">Chapters 1&ndash;5 give a thorough, self-contained treatment of simplicial complexes and simplicial homology.
+    More elementary than Hatcher; carefully develops the theory with explicit computations. Our treatment of
+    the f-vector and Euler characteristic follows Munkres.</span></li>
+
+  <li><strong>Spanier, E.H.</strong> <em>Algebraic Topology</em>. Springer, 1966. ISBN 978-0-387-94426-5.
+    <br><span style="color:var(--fg-dim);">The encyclopaedic reference. Chapter 3 treats simplicial complexes in full generality.
+    Consult for the relationship between abstract and geometric simplicial complexes.</span></li>
+
+  <li><strong>Rotman, J.J.</strong> <em>An Introduction to Algebraic Topology</em>. Springer GTM 119, 1988.
+    <br><span style="color:var(--fg-dim);">Chapters 7&ndash;8 develop simplicial complexes and homology with a focus on computation.</span></li>
+</ol>
+
+<h3>Computational and Applied References</h3>
+
+<ol start="5" style="margin: 0.5rem 0 1.5rem 2rem; line-height: 2.2;">
+  <li><strong>Edelsbrunner, H. and Harer, J.L.</strong> <em>Computational Topology: An Introduction</em>.
+    AMS, 2010. ISBN 978-0-8218-4925-5.
+    <br><span style="color:var(--fg-dim);">Part I (chapters 1&ndash;4) covers simplicial complexes from the computational perspective.
+    The Vietoris-Rips and &#268;ech constructions are in Chapter III. Our <code>vietoris_rips()</code> implementation follows their definition.</span></li>
+
+  <li><strong>Zomorodian, A.</strong> <em>Topology for Computing</em>. Cambridge University Press, 2005.
+    ISBN 0-521-83666-2.
+    <br><span style="color:var(--fg-dim);">Chapters 4&ndash;6 cover simplicial complexes as computational objects. Explicit algorithms for
+    boundary matrix computation.</span></li>
+
+  <li><strong>Ghrist, R.</strong> <em>Elementary Applied Topology</em>. Createspace, 2014. ISBN 978-1-5028-8085-7.
+    <br><span style="color:var(--fg-dim);">A beautifully illustrated introduction. Chapter 1 introduces simplicial complexes with
+    an emphasis on applications. The book is freely available at <code>math.upenn.edu/~ghrist/notes.html</code>.</span></li>
+
+  <li><strong>Kozlov, D.N.</strong> <em>Combinatorial Algebraic Topology</em>. Springer, 2008. ISBN 978-3-540-71961-8.
+    <br><span style="color:var(--fg-dim);">For a deeper treatment of the combinatorics of simplicial complexes: f-vectors, h-vectors,
+    the Dehn-Sommerville relations, and shellability.</span></li>
+</ol>
+
+<h3>Original Papers</h3>
+
+<ol start="9" style="margin: 0.5rem 0 1.5rem 2rem; line-height: 2.2;">
+  <li><strong>Vietoris, L.</strong> &ldquo;&Uuml;ber den h&ouml;heren Zusammenhang kompakter R&auml;ume und eine
+    Klasse von zusammenhangstreuen Abbildungen.&rdquo; <em>Math. Ann.</em> 97 (1927), 454&ndash;472.
+    <br><span style="color:var(--fg-dim);">The original definition of the Vietoris complex. Our VR construction is the flag complex variant,
+    which is equivalent for metric spaces.</span></li>
+
+  <li><strong>Hausmann, J.-C.</strong> &ldquo;On the Vietoris-Rips complexes and a cohomology theory for
+    metric spaces.&rdquo; <em>Annals of Mathematics Studies</em> 138 (1995), 175&ndash;188.
+    <br><span style="color:var(--fg-dim);">Proves that VR(X, r) is homotopy equivalent to X for sufficiently small r when X is a
+    Riemannian manifold &mdash; the theoretical justification for using VR complexes in TDA.</span></li>
+</ol>
+
+<h3>Suggested Further Reading</h3>
+
+<ul style="margin: 0.5rem 0 1.5rem 2rem; line-height: 2;">
+  <li>For the <strong>nerve theorem</strong> (relating &#268;ech complexes to the underlying space):
+    Borsuk, K. &ldquo;On the imbedding of systems of compacta in simplicial complexes.&rdquo; <em>Fund. Math.</em> 35 (1948), 217&ndash;234.</li>
+  <li>For <strong>flag complexes</strong> and clique complexes: Aharoni, R., Berger, E., Meshulam, R.
+    &ldquo;Eigenvalues and homology of flag complexes and vector representations of graphs.&rdquo;
+    <em>Geom. Funct. Anal.</em> 15 (2005), 555&ndash;566.</li>
+  <li>For the <strong>Bron-Kerbosch algorithm</strong> referenced in Exercise 1.7:
+    Bron, C. and Kerbosch, J. &ldquo;Algorithm 457: finding all cliques of an undirected graph.&rdquo;
+    <em>Comm. ACM</em> 16(9) (1973), 575&ndash;577.</li>
+</ul>
+
+<p style="text-align: center; margin-top: 2em;">
+  <a href="02-homology.html" style="font-size: 1.1em;">Chapter 2: Homology and the Boundary Operator &rarr;</a>
+</p>
+
+<div class="footer">
+  <p>topo-sonify &middot; Chapter 1: Simplicial Complexes</p>
+</div>
+
+</body>
+</html>
