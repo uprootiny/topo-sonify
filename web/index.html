@@ -156,12 +156,12 @@ button.danger { background: var(--accent2); }
 <header>
   <h1>topo-sonify</h1>
   <nav>
-    <a href="../docs/index.html">Seminar</a>
-    <a href="../docs/01-simplicial-complexes.html">Simplices</a>
-    <a href="../docs/02-homology.html">Homology</a>
-    <a href="../docs/03-persistent-homology.html">Persistence</a>
-    <a href="../docs/04-sonification-mapping.html">Mapping</a>
-    <a href="../docs/05-storyboard.html">Storyboard</a>
+    <a href="./docs/index.html">Seminar</a>
+    <a href="./docs/01-simplicial-complexes.html">Simplices</a>
+    <a href="./docs/02-homology.html">Homology</a>
+    <a href="./docs/03-persistent-homology.html">Persistence</a>
+    <a href="./docs/04-sonification-mapping.html">Mapping</a>
+    <a href="./docs/05-storyboard.html">Storyboard</a>
   </nav>
 </header>
 
@@ -250,8 +250,8 @@ button.danger { background: var(--accent2); }
 
     <h3>Links</h3>
     <p style="font-size:0.72rem; margin-top:0.5rem;">
-      <a href="../docs/index.html" style="color:var(--accent);">Seminar Notes →</a><br>
-      <a href="../docs/05-storyboard.html" style="color:var(--accent);">Design Storyboard →</a>
+      <a href="./docs/index.html" style="color:var(--accent);">Seminar Notes →</a><br>
+      <a href="./docs/05-storyboard.html" style="color:var(--accent);">Design Storyboard →</a>
     </p>
   </div>
 </div>
@@ -263,7 +263,11 @@ let wasm = null;
 let wasmReady = false;
 
 try {
-  const wasmModule = await import('../pkg/topo_sonify.js');
+  // Try pkg/ relative to current page (works on GitHub Pages where index.html
+  // and pkg/ are siblings), then fall back to ../pkg/ (local dev with web/ subdir).
+  let wasmPath = './pkg/topo_sonify.js';
+  try { await fetch(wasmPath, {method: 'HEAD'}); } catch { wasmPath = '../pkg/topo_sonify.js'; }
+  const wasmModule = await import(wasmPath);
   await wasmModule.default();
   wasm = wasmModule;
   wasmReady = true;
