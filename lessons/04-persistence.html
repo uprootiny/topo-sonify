@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>4. Persistence — topo-sonify</title>
+<link rel="stylesheet" href="shared.css">
+<style>
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 0; height: 100%; }
+  .split canvas { width: 100%; height: 100%; }
+  .diagram-area { background: #0d0d14; border-left: 1px solid var(--border); position: relative; }
+  .diagram-label {
+    position: absolute; bottom: 0.8rem; left: 50%; transform: translateX(-50%);
+    font-family: var(--mono); font-size: 0.65rem; color: var(--dim);
+  }
+  .sweep-line {
+    position: absolute; top: 0; width: 2px; height: 100%;
+    background: rgba(123, 104, 238, 0.4); pointer-events: none;
+    transition: left 0.05s linear;
+  }
+</style>
+</head>
+<body>
+
+<div class="lesson">
+  <header class="lesson-header">
+    <span class="chapter">Lesson 4 of 6</span>
+    <h1>The persistence of shape</h1>
+    <nav>
+      <a href="03-loops.html">← Prev</a>
+      <a href="05-curvature.html">Next →</a>
+    </nav>
+  </header>
+
+  <div class="lesson-body">
+    <div class="interactive-area" style="padding:0;">
+      <div class="split">
+        <div style="position:relative;">
+          <canvas id="canvas" width="450" height="600"></canvas>
+          <div class="stats" id="stats" style="left:1rem;right:auto;"></div>
+        </div>
+        <div class="diagram-area">
+          <canvas id="dgm" width="450" height="600"></canvas>
+          <div class="diagram-label">persistence diagram</div>
+        </div>
+      </div>
+      <div class="controls">
+        <label>sweep</label>
+        <input type="range" id="radius" min="0.01" max="0.8" step="0.002" value="0.01">
+        <span id="radius-val" style="font-family:var(--mono);font-size:0.72rem;color:var(--dim);width:2.5em;">0.01</span>
+        <button id="btn-auto">Auto sweep</button>
+        <button id="btn-play">Listen</button>
+        <button id="btn-stop" class="stop">Stop</button>
+      </div>
+    </div>
+
+    <div class="text-panel">
+      <p>Drag the <strong>sweep</strong> slider slowly from left to right. Watch the persistence diagram build on the right.</p>
+
+      <p class="reveal" id="r1">
+        Each dot in the diagram is a topological feature. Its position encodes
+        when it was <strong>born</strong> (x-axis) and when it <strong>died</strong> (y-axis).
+      </p>
+
+      <p class="reveal" id="r2">
+        Points far from the diagonal lived a long time — they're <em>persistent</em>.
+        Points near the diagonal were fleeting — probably noise. Distance from the
+        diagonal = significance.
+      </p>
+
+      <p class="reveal" id="r3">
+        <span style="color:var(--h0);">Purple dots</span> are components merging (<span class="math">H₀</span>).
+        <span style="color:var(--h1);">Red dots</span> are loops appearing and filling (<span class="math">H₁</span>).
+        Each persistence pair becomes a <strong>delay tap</strong> in the audio — long-lived features echo longer.
+      </p>
+
+      <p class="dim reveal" id="r4">
+        Hit <strong>Auto sweep</strong> and <strong>Listen</strong> together.
+        The filtration literally <em>plays</em> the topology.
+      </p>
+    </div>
+  </div>
+
+  <footer class="lesson-footer">
+    <a href="03-loops.html">← Loops</a>
+    <a href="05-curvature.html" class="next">Curvature →</a>
+  </footer>
+</div>
+
+<script type="module">
+// ─── Points: random cluster with structure ──────────
+const seed = (s) => () => { s = Math.sin(s * 9301 + 49297) % 233280; return (s < 0 ? s + 233280 : s) / 233280; };
+const rng = seed(42);
+let points = [];
+// Two clusters + a ring
+for (let i = 0; i < 5; i++) points.push([0.2 + rng()*0.15, 0.3 + rng()*0.15]);
+for (let i = 0; i < 5; i++) points.push([0.65 + rng()*0.15, 0.6 + rng()*0.15]);
+for (let i = 0; i < 6; i++) {
+  const a = i * Math.PI * 2 / 6;
+  points.push([0.45 + 0.12*Math.cos(a), 0.55 + 0.12*Math.sin(a)]);
+}
+
+let audioCtx = null;
+let playing = false;
+let autoSweep = null;
+let allPairs = []; // persistence pairs accumulated during sweep
+
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const dgmCanvas = document.getElementById('dgm');
+const dctx = dgmCanvas.getContext('2d');
+const dist = (a, b) => Math.sqrt((a[0]-b[0])**2 + (a[1]-b[1])**2);
+
+// Precompute all pairwise distances for persistence
+const dists = [];
+for (let i = 0; i < points.length; i++)
+  for (let j = i+1; j < points.length; j++)
+    dists.push({ d: dist(points[i], points[j]), i, j });
+dists.sort((a, b) => a.d - b.d);
+const maxDist = dists[dists.length - 1]?.d || 1;
+
+// Compute persistence via union-find on sorted edges (exact H₀ persistence)
+const computeH0Persistence = () => {
+  const parent = Array.from({length: points.length}, (_, i) => i);
+  const rank = new Array(points.length).fill(0);
+  const birth = new Array(points.length).fill(0); // all born at r=0
+  const find = (x) => { while(parent[x]!==x) {parent[x]=parent[parent[x]]; x=parent[x];} return x; };
+  const pairs = [];
+
+  for (const { d, i, j } of dists) {
+    const ri = find(i), rj = find(j);
+    if (ri === rj) continue;
+    // Elder rule: the younger component (born later or higher index) dies
+    const [elder, younger] = birth[ri] <= birth[rj] ? [ri, rj] : [rj, ri];
+    pairs.push({ birth: birth[younger], death: d, dim: 0 });
+    if (rank[elder] < rank[younger]) parent[elder] = younger;
+    else if (rank[elder] > rank[younger]) parent[younger] = elder;
+    else { parent[younger] = elder; rank[elder]++; }
+  }
+  // One essential class (the eldest component)
+  pairs.push({ birth: 0, death: Infinity, dim: 0 });
+  return pairs;
+};
+
+// Approximate H₁ persistence via Betti tracking
+const computeH1Approx = () => {
+  const pairs = [];
+  let prevB1 = 0;
+  const activeBirths = [];
+  const steps = 40;
+
+  for (let s = 0; s <= steps; s++) {
+    const r = (s / steps) * maxDist;
+    let edges = 0, tris = 0;
+    const parent = Array.from({length: points.length}, (_, i) => i);
+    const find = (x) => { while(parent[x]!==x) {parent[x]=parent[parent[x]]; x=parent[x];} return x; };
+
+    for (let i = 0; i < points.length; i++)
+      for (let j = i+1; j < points.length; j++)
+        if (dist(points[i], points[j]) <= r) { edges++; parent[find(i)] = find(j); }
+    const b0 = new Set(Array.from({length: points.length}, (_,i) => find(i))).size;
+    for (let i = 0; i < points.length; i++)
+      for (let j = i+1; j < points.length; j++) {
+        if (dist(points[i], points[j]) > r) continue;
+        for (let k = j+1; k < points.length; k++)
+          if (dist(points[i], points[k]) <= r && dist(points[j], points[k]) <= r) tris++;
+      }
+    const b1 = Math.max(0, edges - (points.length - b0) - tris);
+
+    if (b1 > prevB1) for (let x = 0; x < b1 - prevB1; x++) activeBirths.push(r);
+    else if (b1 < prevB1) for (let x = 0; x < prevB1 - b1; x++) {
+      const birth = activeBirths.pop();
+      if (birth !== undefined && r - birth > 0.001) pairs.push({ birth, death: r, dim: 1 });
+    }
+    prevB1 = b1;
+  }
+  return pairs;
+};
+
+const h0pairs = computeH0Persistence();
+const h1pairs = computeH1Approx();
+const allPersistence = [...h0pairs.filter(p => p.death !== Infinity), ...h1pairs];
+
+const draw = () => {
+  const w = canvas.width, h = canvas.height;
+  const radius = parseFloat(document.getElementById('radius').value);
+  ctx.fillStyle = '#111118';
+  ctx.fillRect(0, 0, w, h);
+
+  // Triangles
+  ctx.fillStyle = 'rgba(123, 104, 238, 0.05)';
+  for (let i = 0; i < points.length; i++)
+    for (let j = i+1; j < points.length; j++) {
+      if (dist(points[i], points[j]) > radius) continue;
+      for (let k = j+1; k < points.length; k++)
+        if (dist(points[i], points[k]) <= radius && dist(points[j], points[k]) <= radius) {
+          ctx.beginPath();
+          ctx.moveTo(points[i][0]*w, points[i][1]*h);
+          ctx.lineTo(points[j][0]*w, points[j][1]*h);
+          ctx.lineTo(points[k][0]*w, points[k][1]*h);
+          ctx.closePath(); ctx.fill();
+        }
+    }
+
+  // Edges
+  for (let i = 0; i < points.length; i++)
+    for (let j = i+1; j < points.length; j++)
+      if (dist(points[i], points[j]) <= radius) {
+        ctx.beginPath();
+        ctx.moveTo(points[i][0]*w, points[i][1]*h);
+        ctx.lineTo(points[j][0]*w, points[j][1]*h);
+        ctx.strokeStyle = 'rgba(123, 104, 238, 0.3)';
+        ctx.lineWidth = 1.5; ctx.stroke();
+      }
+
+  // Points
+  points.forEach(p => {
+    ctx.beginPath();
+    ctx.arc(p[0]*w, p[1]*h, 4, 0, Math.PI*2);
+    ctx.fillStyle = '#7b68ee'; ctx.fill();
+  });
+
+  // Stats
+  const parent = Array.from({length: points.length}, (_, i) => i);
+  const find = (x) => { while(parent[x]!==x) {parent[x]=parent[parent[x]]; x=parent[x];} return x; };
+  let edges = 0, tris = 0;
+  for (let i = 0; i < points.length; i++)
+    for (let j = i+1; j < points.length; j++)
+      if (dist(points[i], points[j]) <= radius) { edges++; parent[find(i)] = find(j); }
+  const b0 = new Set(Array.from({length: points.length}, (_,i) => find(i))).size;
+  for (let i = 0; i < points.length; i++)
+    for (let j = i+1; j < points.length; j++) {
+      if (dist(points[i], points[j]) > radius) continue;
+      for (let k = j+1; k < points.length; k++)
+        if (dist(points[i], points[k]) <= radius && dist(points[j], points[k]) <= radius) tris++;
+    }
+  const b1 = Math.max(0, edges - (points.length - b0) - tris);
+
+  document.getElementById('stats').innerHTML = `
+    <div class="stat-badge">r = <span class="val">${radius.toFixed(3)}</span></div>
+    <div class="stat-badge">β₀ = <span class="val">${b0}</span></div>
+    <div class="stat-badge" style="${b1>0?'border-color:rgba(255,107,107,0.4);':''}">β₁ = <span class="val" style="${b1>0?'color:#ff6b6b;':''}">${b1}</span></div>
+  `;
+
+  // Reveals
+  if (radius > 0.1) document.getElementById('r1')?.classList.add('visible');
+  if (radius > 0.25) document.getElementById('r2')?.classList.add('visible');
+  if (radius > 0.35) document.getElementById('r3')?.classList.add('visible');
+  if (radius > 0.5) document.getElementById('r4')?.classList.add('visible');
+
+  drawDiagram(radius);
+};
+
+const drawDiagram = (currentR) => {
+  const w = dgmCanvas.width, h = dgmCanvas.height;
+  const pad = 40;
+  const dw = w - 2*pad, dh = h - 2*pad;
+  dctx.fillStyle = '#0d0d14';
+  dctx.fillRect(0, 0, w, h);
+
+  const scale = maxDist * 1.1;
+
+  // Diagonal
+  dctx.strokeStyle = '#1e1e2e';
+  dctx.lineWidth = 1;
+  dctx.beginPath();
+  dctx.moveTo(pad, pad + dh);
+  dctx.lineTo(pad + dw, pad);
+  dctx.stroke();
+
+  // Axes
+  dctx.strokeStyle = '#2a2a3a';
+  dctx.beginPath();
+  dctx.moveTo(pad, pad); dctx.lineTo(pad, pad+dh); dctx.lineTo(pad+dw, pad+dh);
+  dctx.stroke();
+
+  dctx.fillStyle = '#444';
+  dctx.font = '9px monospace';
+  dctx.fillText('birth →', pad + 5, pad + dh + 15);
+  dctx.save();
+  dctx.translate(pad - 15, pad + dh - 5);
+  dctx.rotate(-Math.PI/2);
+  dctx.fillText('death →', 0, 0);
+  dctx.restore();
+
+  // Sweep line
+  const sx = pad + (currentR / scale) * dw;
+  dctx.strokeStyle = 'rgba(123, 104, 238, 0.3)';
+  dctx.lineWidth = 1;
+  dctx.setLineDash([4, 4]);
+  dctx.beginPath();
+  dctx.moveTo(sx, pad); dctx.lineTo(sx, pad+dh);
+  dctx.stroke();
+  dctx.setLineDash([]);
+
+  // Draw persistence pairs that have been born by currentR
+  const colors = { 0: '#7b68ee', 1: '#ff6b6b', 2: '#4ecdc4' };
+
+  allPersistence.forEach(p => {
+    if (p.birth > currentR) return;
+    const x = pad + (p.birth / scale) * dw;
+    const death = Math.min(p.death, currentR); // grow toward final death as we sweep
+    const y = pad + dh - (death / scale) * dh;
+    const finalY = pad + dh - (p.death / scale) * dh;
+    const pers = p.death - p.birth;
+    const r = Math.max(3, Math.min(8, pers / scale * 30));
+
+    // If fully revealed (death <= currentR), draw solid
+    if (p.death <= currentR) {
+      dctx.globalAlpha = 0.9;
+      dctx.beginPath();
+      dctx.arc(x, finalY, r, 0, Math.PI*2);
+      dctx.fillStyle = colors[p.dim] || '#888';
+      dctx.fill();
+    } else {
+      // Still alive — draw growing trail from diagonal
+      dctx.globalAlpha = 0.4;
+      dctx.beginPath();
+      const diagY = pad + dh - (p.birth / scale) * dh; // point on diagonal
+      dctx.moveTo(x, diagY);
+      dctx.lineTo(x, y);
+      dctx.strokeStyle = colors[p.dim] || '#888';
+      dctx.lineWidth = 2;
+      dctx.stroke();
+
+      // Dot at current position
+      dctx.beginPath();
+      dctx.arc(x, y, 3, 0, Math.PI*2);
+      dctx.fillStyle = colors[p.dim] || '#888';
+      dctx.fill();
+    }
+    dctx.globalAlpha = 1;
+  });
+
+  // Legend
+  dctx.font = '9px monospace';
+  [['H₀', '#7b68ee'], ['H₁', '#ff6b6b']].forEach(([label, color], i) => {
+    dctx.fillStyle = color;
+    dctx.fillRect(w - 50, pad + i * 15, 8, 8);
+    dctx.fillStyle = '#666';
+    dctx.fillText(label, w - 38, pad + 8 + i * 15);
+  });
+};
+
+// ─── Audio: delay taps from persistence ─────────────
+let delayNodes = [];
+let droneOsc = null, droneGain = null;
+
+const startAudio = () => {
+  if (!audioCtx) audioCtx = new AudioContext();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  playing = true;
+
+  // Drone
+  droneOsc = audioCtx.createOscillator();
+  droneGain = audioCtx.createGain();
+  droneOsc.type = 'sawtooth';
+  droneOsc.frequency.value = 165;
+  droneGain.gain.value = 0.06;
+  droneOsc.connect(droneGain).connect(audioCtx.destination);
+  droneOsc.start();
+
+  // Create delay taps from persistence pairs
+  allPersistence.forEach(p => {
+    const delayTime = Math.min(1.5, p.birth / maxDist * 1.5);
+    const feedback = Math.min(0.7, (p.death - p.birth) / maxDist);
+    const level = p.dim === 0 ? 0.3 : 0.5;
+
+    const delay = audioCtx.createDelay(2.0);
+    const gain = audioCtx.createGain();
+    const fb = audioCtx.createGain();
+
+    delay.delayTime.value = Math.max(0.05, delayTime);
+    gain.gain.value = level * 0.04;
+    fb.gain.value = feedback;
+
+    droneGain.connect(delay).connect(gain).connect(audioCtx.destination);
+    delay.connect(fb).connect(delay); // feedback loop
+
+    delayNodes.push({ delay, gain, fb });
+  });
+};
+
+const stopAudio = () => {
+  playing = false;
+  if (droneOsc) { droneOsc.stop(); droneOsc = null; }
+  delayNodes.forEach(({ delay, gain, fb }) => {
+    gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.1);
+    fb.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.1);
+  });
+  delayNodes = [];
+};
+
+// ─── Controls ───────────────────────────────────────
+document.getElementById('radius').addEventListener('input', (e) => {
+  document.getElementById('radius-val').textContent = parseFloat(e.target.value).toFixed(2);
+  draw();
+});
+
+document.getElementById('btn-play').addEventListener('click', () => {
+  if (playing) return;
+  startAudio();
+});
+document.getElementById('btn-stop').addEventListener('click', () => {
+  if (autoSweep) { clearInterval(autoSweep); autoSweep = null; }
+  stopAudio();
+});
+
+document.getElementById('btn-auto').addEventListener('click', () => {
+  if (autoSweep) { clearInterval(autoSweep); autoSweep = null; return; }
+  const slider = document.getElementById('radius');
+  slider.value = 0.01;
+  autoSweep = setInterval(() => {
+    let v = parseFloat(slider.value) + 0.003;
+    if (v > 0.8) { clearInterval(autoSweep); autoSweep = null; return; }
+    slider.value = v;
+    document.getElementById('radius-val').textContent = v.toFixed(2);
+    draw();
+  }, 50);
+});
+
+draw();
+</script>
+</body>
+</html>

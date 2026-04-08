@@ -1,3 +1,7 @@
+// Range loops on matrix/vertex indices are idiomatic for numerical code —
+// the index variable is used in arithmetic, not just for array access.
+#![allow(clippy::needless_range_loop)]
+
 pub mod topology;
 pub mod audio;
 pub mod instruments;

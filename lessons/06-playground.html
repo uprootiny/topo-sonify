@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>6. Playground — topo-sonify</title>
+<link rel="stylesheet" href="shared.css">
+</head>
+<body>
+
+<div class="lesson">
+  <header class="lesson-header">
+    <span class="chapter">Lesson 6 of 6</span>
+    <h1>Playground</h1>
+    <nav>
+      <a href="05-curvature.html">← Prev</a>
+      <a href="index.html">Overview</a>
+    </nav>
+  </header>
+
+  <div class="lesson-body">
+    <div class="interactive-area" style="flex-direction:column;gap:1rem;">
+      <p style="color:var(--dim);font-size:1.1rem;text-align:center;max-width:30rem;">
+        The full instrument panel with all controls lives at the main app.
+        Everything from lessons 1–5 runs together there.
+      </p>
+      <a href="../" style="
+        display:inline-block; background:var(--accent); color:white;
+        padding:0.8rem 2rem; border-radius:8px; text-decoration:none;
+        font-family:var(--mono); font-size:0.9rem; margin-top:1rem;
+      ">Open instrument panel →</a>
+    </div>
+
+    <div class="text-panel">
+      <p>You've learned the five core ideas:</p>
+      <p><strong>1.</strong> Points are voices (<span class="math">β₀</span>).</p>
+      <p><strong>2.</strong> Connections merge them (Vietoris-Rips).</p>
+      <p><strong>3.</strong> Loops add modulation (<span class="math">β₁</span>).</p>
+      <p><strong>4.</strong> Features are born and die (persistence → delay).</p>
+      <p><strong>5.</strong> Curvature shapes the room (<span class="math">χ</span> → reverb).</p>
+      <p class="dim" style="margin-top:1.5rem;">
+        The instrument panel wires all of this through the Rust engine via WASM:
+        BettiDrone, SimplicialPluck, MorseSynth → BettiDistortion → PersistenceDelay → CurvatureReverb.
+      </p>
+    </div>
+  </div>
+
+  <footer class="lesson-footer">
+    <a href="05-curvature.html">← Curvature</a>
+    <a href="index.html" class="next">Overview →</a>
+  </footer>
+</div>
+
+</body>
+</html>

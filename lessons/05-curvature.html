@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>5. Curvature — topo-sonify</title>
+<link rel="stylesheet" href="shared.css">
+<style>
+  .space-picker {
+    display: flex; gap: 0.75rem; flex-wrap: wrap;
+    justify-content: center; margin-top: 0.5rem;
+  }
+  .space-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .space-btn:hover { border-color: var(--accent); }
+  .space-btn.active { border-color: var(--accent); background: var(--accent-dim); }
+  .reverb-viz { position: relative; }
+  .reverb-label {
+    position: absolute; top: 1rem; left: 50%; transform: translateX(-50%);
+    font-family: var(--mono); font-size: 1.2rem; color: var(--accent);
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+
+<div class="lesson">
+  <header class="lesson-header">
+    <span class="chapter">Lesson 5 of 6</span>
+    <h1>Curvature shapes the room</h1>
+    <nav>
+      <a href="04-persistence.html">← Prev</a>
+      <a href="06-playground.html">Next →</a>
+    </nav>
+  </header>
+
+  <div class="lesson-body">
+    <div class="interactive-area" style="flex-direction:column;gap:1rem;">
+      <div class="reverb-viz">
+        <canvas id="canvas" width="900" height="350"></canvas>
+        <div class="reverb-label" id="chi-label">χ = —</div>
+      </div>
+
+      <div class="space-picker" id="picker">
+        <button class="space-btn active" data-space="sphere">Sphere (χ=2)</button>
+        <button class="space-btn" data-space="torus">Torus (χ=0)</button>
+        <button class="space-btn" data-space="genus2">Genus 2 (χ=−2)</button>
+        <button class="space-btn" data-space="genus5">Genus 5 (χ=−8)</button>
+        <button class="space-btn" data-space="wedge">Wedge of circles (χ=−2)</button>
+      </div>
+
+      <div class="controls" style="position:relative;bottom:auto;left:auto;transform:none;">
+        <button id="btn-impulse">Clap</button>
+        <button id="btn-drone">Drone</button>
+        <button id="btn-stop" class="stop">Stop</button>
+      </div>
+      <div class="stats" id="stats" style="position:relative;top:auto;right:auto;flex-direction:row;"></div>
+    </div>
+
+    <div class="text-panel">
+      <p>Pick a space. Hit <strong>Clap</strong> to hear its reverb.</p>
+
+      <p class="reveal" id="r1">
+        The <strong>Euler characteristic</strong> χ measures curvature.
+        By the Gauss-Bonnet theorem: ∫K dA = 2πχ.
+        Total curvature is fixed by topology.
+      </p>
+
+      <p class="reveal" id="r2">
+        <strong>Positive χ</strong> (sphere): geodesics converge. Sound focuses.
+        Short, bright reverb — like a dome.
+      </p>
+
+      <p class="reveal" id="r3">
+        <strong>Zero χ</strong> (torus): flat on average. Neutral reverb — like a room.
+        <strong>Negative χ</strong> (high genus): geodesics diverge. Sound scatters.
+        Long, dark, diffuse reverb — like a cave.
+      </p>
+
+      <p class="dim reveal" id="r4">
+        This is not a metaphor. The wave equation on a curved manifold
+        has decay rate governed by curvature. Negative curvature = slower decay.
+      </p>
+    </div>
+  </div>
+
+  <footer class="lesson-footer">
+    <a href="04-persistence.html">← Persistence</a>
+    <a href="06-playground.html" class="next">Playground →</a>
+  </footer>
+</div>
+
+<script type="module">
+const spaces = {
+  sphere:  { chi: 2,  betti: [1,0,1], name: 'S²',  color: '#7b68ee' },
+  torus:   { chi: 0,  betti: [1,2,1], name: 'T²',  color: '#4ecdc4' },
+  genus2:  { chi: -2, betti: [1,4,1], name: 'Σ₂',  color: '#ff6b6b' },
+  genus5:  { chi: -8, betti: [1,10,1], name: 'Σ₅', color: '#e0af68' },
+  wedge:   { chi: -2, betti: [1,3,0], name: '∨S¹', color: '#bb86fc' },
+};
+
+let current = 'sphere';
+let audioCtx = null;
+let droneOsc = null, droneGain = null;
+let reverbNode = null;
+
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+// ─── Reverb impulse response generation ─────────────
+const generateIR = (chi, sampleRate, duration) => {
+  const len = Math.floor(sampleRate * duration);
+  const buffer = new Float32Array(len);
+
+  // RT60 from Euler characteristic
+  const rt60 = chi > 0
+    ? 0.3 + 0.2 / chi
+    : chi === 0 ? 1.2 : 1.2 + 0.4 * Math.abs(chi);
+
+  // Decay constant
+  const decay = -6.908 / rt60; // -60dB at rt60
+
+  // Damping (high-freq absorption): positive chi = bright, negative = dark
+  const dampFreq = chi > 0 ? 8000 : chi === 0 ? 4000 : 2000 - Math.abs(chi) * 100;
+
+  // Generate noise with exponential decay and simple lowpass
+  let lpState = 0;
+  const lpCoeff = Math.exp(-2 * Math.PI * dampFreq / sampleRate);
+
+  for (let i = 0; i < len; i++) {
+    const t = i / sampleRate;
+    const noise = Math.random() * 2 - 1;
+    lpState = lpCoeff * lpState + (1 - lpCoeff) * noise;
+    buffer[i] = lpState * Math.exp(decay * t) * 0.5;
+  }
+
+  // Early reflections density: more for negative chi (more scattering)
+  const numReflections = Math.max(4, 8 + Math.abs(chi) * 3);
+  for (let r = 0; r < numReflections; r++) {
+    const delay = Math.floor((0.005 + r * 0.008 * (1 + Math.abs(chi) * 0.1)) * sampleRate);
+    const gain = 0.3 * Math.exp(-r * 0.15);
+    if (delay < len) buffer[delay] += gain * (Math.random() > 0.5 ? 1 : -1);
+  }
+
+  return buffer;
+};
+
+const createReverbNode = (chi) => {
+  if (!audioCtx) return null;
+  const sr = audioCtx.sampleRate;
+  const duration = chi > 0 ? 1.5 : chi === 0 ? 3.0 : 3.0 + Math.abs(chi) * 0.5;
+  const irData = generateIR(chi, sr, Math.min(duration, 6));
+  const irBuffer = audioCtx.createBuffer(1, irData.length, sr);
+  irBuffer.copyToChannel(irData, 0);
+  const convolver = audioCtx.createConvolver();
+  convolver.buffer = irBuffer;
+  return convolver;
+};
+
+// ─── Visualization ──────────────────────────────────
+const draw = () => {
+  const w = canvas.width, h = canvas.height;
+  const space = spaces[current];
+  ctx.fillStyle = '#111118';
+  ctx.fillRect(0, 0, w, h);
+
+  // Draw a stylized decay curve
+  const chi = space.chi;
+  const rt60 = chi > 0 ? 0.3 + 0.2/Math.max(1,chi) : chi === 0 ? 1.2 : 1.2 + 0.4*Math.abs(chi);
+  const decay = 6.908 / rt60;
+
+  ctx.strokeStyle = space.color;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  for (let x = 0; x < w; x++) {
+    const t = (x / w) * 4; // 4 seconds
+    const amp = Math.exp(-decay * t);
+    // Add some "reflections" noise for visual interest
+    const noise = Math.sin(x * 0.3) * 0.05 + Math.sin(x * 0.7) * 0.03;
+    const y = h/2 - (amp + noise * amp) * h * 0.4;
+    x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+
+  // Mirror
+  ctx.globalAlpha = 0.3;
+  ctx.beginPath();
+  for (let x = 0; x < w; x++) {
+    const t = (x / w) * 4;
+    const amp = Math.exp(-decay * t);
+    const noise = Math.sin(x * 0.3 + 1) * 0.05;
+    const y = h/2 + (amp + noise * amp) * h * 0.4;
+    x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+
+  // Center line
+  ctx.strokeStyle = '#1e1e2e';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(0, h/2); ctx.lineTo(w, h/2);
+  ctx.stroke();
+
+  // Time markers
+  ctx.fillStyle = '#333';
+  ctx.font = '9px monospace';
+  for (let s = 0; s <= 4; s++) {
+    const x = (s/4) * w;
+    ctx.fillText(`${s}s`, x + 4, h - 5);
+  }
+
+  // RT60 marker
+  const rt60x = (rt60 / 4) * w;
+  ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+  ctx.setLineDash([3,3]);
+  ctx.beginPath();
+  ctx.moveTo(rt60x, 0); ctx.lineTo(rt60x, h);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = '#666';
+  ctx.fillText(`RT60 = ${rt60.toFixed(1)}s`, rt60x + 5, 15);
+
+  document.getElementById('chi-label').textContent = `χ = ${chi}`;
+  document.getElementById('chi-label').style.color = space.color;
+
+  document.getElementById('stats').innerHTML = `
+    <div class="stat-badge">χ = <span class="val" style="color:${space.color}">${chi}</span></div>
+    <div class="stat-badge">β = <span class="val">(${space.betti.join(',')})</span></div>
+    <div class="stat-badge">RT60 = <span class="val">${rt60.toFixed(1)}s</span></div>
+    <div class="stat-badge" style="color:${space.color}">${space.name}</div>
+  `;
+};
+
+// ─── Space picker ───────────────────────────────────
+document.querySelectorAll('.space-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.space-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    current = btn.dataset.space;
+    draw();
+
+    // Rebuild reverb if audio is active
+    if (audioCtx && reverbNode) {
+      reverbNode.disconnect();
+      reverbNode = createReverbNode(spaces[current].chi);
+      if (droneGain) droneGain.connect(reverbNode).connect(audioCtx.destination);
+    }
+
+    // Progressive reveals
+    const chi = spaces[current].chi;
+    document.getElementById('r1')?.classList.add('visible');
+    if (chi > 0) document.getElementById('r2')?.classList.add('visible');
+    if (chi <= 0) document.getElementById('r3')?.classList.add('visible');
+    if (chi < 0) document.getElementById('r4')?.classList.add('visible');
+  });
+});
+
+// ─── Audio ──────────────────────────────────────────
+document.getElementById('btn-impulse').addEventListener('click', () => {
+  if (!audioCtx) audioCtx = new AudioContext();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+
+  reverbNode = createReverbNode(spaces[current].chi);
+
+  // Short impulse (clap)
+  const dur = 0.02;
+  const buf = audioCtx.createBuffer(1, Math.floor(audioCtx.sampleRate * dur), audioCtx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < data.length; i++) {
+    data[i] = (Math.random() * 2 - 1) * Math.exp(-i / data.length * 5);
+  }
+
+  const src = audioCtx.createBufferSource();
+  src.buffer = buf;
+  const dry = audioCtx.createGain();
+  dry.gain.value = 0.3;
+  const wet = audioCtx.createGain();
+  wet.gain.value = 0.6;
+
+  src.connect(dry).connect(audioCtx.destination);
+  src.connect(wet).connect(reverbNode).connect(audioCtx.destination);
+  src.start();
+
+  document.getElementById('r1')?.classList.add('visible');
+});
+
+document.getElementById('btn-drone').addEventListener('click', () => {
+  if (!audioCtx) audioCtx = new AudioContext();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  if (droneOsc) return;
+
+  reverbNode = createReverbNode(spaces[current].chi);
+
+  droneOsc = audioCtx.createOscillator();
+  droneGain = audioCtx.createGain();
+  droneOsc.type = 'sawtooth';
+  droneOsc.frequency.value = 165;
+  droneGain.gain.value = 0.04;
+
+  const dry = audioCtx.createGain();
+  dry.gain.value = 0.5;
+  const wet = audioCtx.createGain();
+  wet.gain.value = 0.5;
+
+  droneOsc.connect(droneGain);
+  droneGain.connect(dry).connect(audioCtx.destination);
+  droneGain.connect(wet).connect(reverbNode).connect(audioCtx.destination);
+  droneOsc.start();
+});
+
+document.getElementById('btn-stop').addEventListener('click', () => {
+  if (droneOsc) { droneOsc.stop(); droneOsc = null; droneGain = null; }
+  if (reverbNode) { reverbNode.disconnect(); reverbNode = null; }
+});
+
+draw();
+</script>
+</body>
+</html>
