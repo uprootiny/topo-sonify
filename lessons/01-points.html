@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>1. Points — topo-sonify</title>
+<link rel="stylesheet" href="shared.css">
+</head>
+<body>
+
+<div class="lesson">
+  <header class="lesson-header">
+    <span class="chapter">Lesson 1 of 6</span>
+    <h1>Points become sound</h1>
+    <nav>
+      <a href="index.html">Overview</a>
+      <a href="02-connections.html">Next →</a>
+    </nav>
+  </header>
+
+  <div class="lesson-body">
+    <div class="interactive-area">
+      <canvas id="canvas" width="900" height="600"></canvas>
+
+      <div class="stats" id="stats"></div>
+
+      <div class="controls">
+        <button id="btn-play">Listen</button>
+        <button id="btn-stop" class="stop">Stop</button>
+        <button id="btn-clear" class="stop">Clear</button>
+      </div>
+    </div>
+
+    <div class="text-panel">
+      <p>Click anywhere above to place a point.</p>
+
+      <p class="reveal" id="r1">
+        Each point is a <strong>0-simplex</strong> — the simplest possible
+        geometric object. On its own, it's an isolated voice.
+      </p>
+
+      <p class="reveal" id="r2">
+        Place more points. Each one adds an independent oscillator.
+        The number of separate voices is <span class="math">β₀</span> —
+        the zeroth Betti number. It counts <em>connected components</em>.
+      </p>
+
+      <p class="reveal" id="r3">
+        Right now, every point is its own component.
+        Three points = three independent voices = a chord.
+      </p>
+
+      <p class="dim reveal" id="r4">
+        In the next lesson, we'll connect them.
+      </p>
+    </div>
+  </div>
+
+  <footer class="lesson-footer">
+    <a href="index.html">← Overview</a>
+    <a href="02-connections.html" class="next">Connections →</a>
+  </footer>
+</div>
+
+<script type="module">
+// ─── WASM ────────────────────────────────────────────
+let wasm = null;
+try {
+  let path = './pkg/topo_sonify.js';
+  try { await fetch(path, {method:'HEAD'}); } catch { path = '../pkg/topo_sonify.js'; }
+  const m = await import(path);
+  await m.default();
+  wasm = m;
+} catch(e) { console.log('WASM unavailable:', e); }
+
+// ─── State ──────────────────────────────────────────
+let points = [];
+let audioCtx = null;
+let activeOscs = [];
+
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+// ─── Drawing ────────────────────────────────────────
+const draw = () => {
+  const w = canvas.width, h = canvas.height;
+  ctx.fillStyle = '#111118';
+  ctx.fillRect(0, 0, w, h);
+
+  // Draw each point with a glow
+  points.forEach((p, i) => {
+    // Glow
+    const grad = ctx.createRadialGradient(p[0]*w, p[1]*h, 0, p[0]*w, p[1]*h, 30);
+    grad.addColorStop(0, 'rgba(123, 104, 238, 0.3)');
+    grad.addColorStop(1, 'rgba(123, 104, 238, 0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(p[0]*w - 30, p[1]*h - 30, 60, 60);
+
+    // Point
+    ctx.beginPath();
+    ctx.arc(p[0]*w, p[1]*h, 5, 0, Math.PI * 2);
+    ctx.fillStyle = '#7b68ee';
+    ctx.fill();
+
+    // Label
+    ctx.fillStyle = '#6a6a7a';
+    ctx.font = '11px monospace';
+    ctx.fillText(`v${i}`, p[0]*w + 8, p[1]*h - 8);
+  });
+
+  // Update stats
+  const statsEl = document.getElementById('stats');
+  if (points.length > 0) {
+    statsEl.innerHTML = `
+      <div class="stat-badge">β₀ = <span class="val">${points.length}</span></div>
+      <div class="stat-badge">voices = <span class="val">${points.length}</span></div>
+    `;
+  } else {
+    statsEl.innerHTML = '';
+  }
+};
+
+// ─── Interaction ────────────────────────────────────
+canvas.addEventListener('click', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const x = (e.clientX - rect.left) / rect.width;
+  const y = (e.clientY - rect.top) / rect.height;
+  points.push([x, y]);
+  draw();
+  revealText();
+  updateAudio();
+});
+
+// Progressive text reveal
+const revealText = () => {
+  const n = points.length;
+  if (n >= 1) document.getElementById('r1')?.classList.add('visible');
+  if (n >= 2) document.getElementById('r2')?.classList.add('visible');
+  if (n >= 3) document.getElementById('r3')?.classList.add('visible');
+  if (n >= 4) document.getElementById('r4')?.classList.add('visible');
+};
+
+// ─── Audio ──────────────────────────────────────────
+// Each point gets its own oscillator. Position maps to frequency:
+// y-axis → pitch (top = high, bottom = low), x-axis → panning.
+const updateAudio = () => {
+  if (!audioCtx || audioCtx.state === 'suspended') return;
+
+  // Remove old oscillators beyond current point count
+  while (activeOscs.length > points.length) {
+    const o = activeOscs.pop();
+    o.gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.1);
+    setTimeout(() => o.osc.stop(), 200);
+  }
+
+  // Add new oscillators for new points
+  while (activeOscs.length < points.length) {
+    const i = activeOscs.length;
+    const p = points[i];
+    const freq = 880 * Math.pow(0.5, p[1] * 2); // y → freq: top=880, bottom=220
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    const pan = audioCtx.createStereoPanner();
+
+    osc.type = 'sine';
+    osc.frequency.value = freq;
+    gain.gain.value = 0;
+    gain.gain.linearRampToValueAtTime(0.15 / Math.sqrt(points.length), audioCtx.currentTime + 0.05);
+    pan.pan.value = (p[0] - 0.5) * 1.5; // x → pan
+
+    osc.connect(gain).connect(pan).connect(audioCtx.destination);
+    osc.start();
+    activeOscs.push({ osc, gain, pan });
+  }
+
+  // Update existing oscillator levels
+  activeOscs.forEach((o, i) => {
+    const level = 0.15 / Math.sqrt(points.length);
+    o.gain.gain.linearRampToValueAtTime(level, audioCtx.currentTime + 0.05);
+  });
+};
+
+document.getElementById('btn-play').addEventListener('click', () => {
+  if (!audioCtx) audioCtx = new AudioContext();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  updateAudio();
+});
+
+document.getElementById('btn-stop').addEventListener('click', () => {
+  activeOscs.forEach(o => {
+    o.gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.1);
+    setTimeout(() => o.osc.stop(), 200);
+  });
+  activeOscs = [];
+});
+
+document.getElementById('btn-clear').addEventListener('click', () => {
+  document.getElementById('btn-stop').click();
+  points = [];
+  draw();
+  document.getElementById('stats').innerHTML = '';
+});
+
+draw();
+</script>
+</body>
+</html>

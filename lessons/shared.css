@@ -1,0 +1,225 @@
+:root {
+  --bg: #0a0a0f;
+  --surface: #111118;
+  --border: #1e1e2e;
+  --text: #d4d4dc;
+  --dim: #6a6a7a;
+  --accent: #7b68ee;
+  --accent-dim: rgba(123, 104, 238, 0.15);
+  --h0: #7b68ee;
+  --h1: #ff6b6b;
+  --h2: #4ecdc4;
+  --h3: #e0af68;
+  --mono: 'SF Mono', 'Cascadia Code', 'JetBrains Mono', 'Fira Code', monospace;
+  --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.7;
+  overflow-x: hidden;
+}
+
+/* ─── Layout ───────────────────────────────────────── */
+
+.lesson {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  min-height: 100vh;
+}
+
+.lesson-header {
+  padding: 1.5rem 3rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+}
+
+.lesson-header .chapter {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--dim);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.lesson-header h1 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.lesson-header nav a {
+  color: var(--dim);
+  text-decoration: none;
+  font-size: 0.85rem;
+  margin-left: 1.5rem;
+  transition: color 0.2s;
+}
+.lesson-header nav a:hover { color: var(--accent); }
+
+/* ─── Main content: interactive area + text ────────── */
+
+.lesson-body {
+  display: grid;
+  grid-template-rows: 1fr auto;
+  overflow: hidden;
+}
+
+.interactive-area {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  min-height: 50vh;
+}
+
+.interactive-area canvas {
+  border-radius: 8px;
+  cursor: crosshair;
+  max-width: 100%;
+  max-height: 100%;
+}
+
+/* ─── Text panel (bottom) ──────────────────────────── */
+
+.text-panel {
+  padding: 2.5rem 3rem;
+  max-width: 42rem;
+  margin: 0 auto;
+  border-top: 1px solid var(--border);
+}
+
+.text-panel p {
+  margin: 0.8rem 0;
+  font-size: 1.05rem;
+  color: var(--text);
+}
+
+.text-panel p.dim {
+  color: var(--dim);
+  font-size: 0.9rem;
+}
+
+.text-panel .math {
+  font-family: var(--mono);
+  color: var(--accent);
+  font-size: 0.95rem;
+}
+
+.text-panel .reveal {
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+.text-panel .reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ─── Controls overlay ─────────────────────────────── */
+
+.controls {
+  position: absolute;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  background: rgba(10, 10, 15, 0.85);
+  backdrop-filter: blur(8px);
+  padding: 0.6rem 1.2rem;
+  border-radius: 24px;
+  border: 1px solid var(--border);
+}
+
+.controls label {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--dim);
+}
+
+.controls input[type="range"] {
+  width: 140px;
+  accent-color: var(--accent);
+}
+
+.controls button {
+  background: var(--accent);
+  color: white;
+  border: none;
+  padding: 0.45rem 1rem;
+  border-radius: 16px;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.controls button:hover { opacity: 0.85; }
+.controls button.stop {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--dim);
+}
+
+/* ─── Stats badges ─────────────────────────────────── */
+
+.stats {
+  position: absolute;
+  top: 1.5rem;
+  right: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  align-items: flex-end;
+}
+
+.stat-badge {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 4px;
+  background: rgba(10, 10, 15, 0.7);
+  border: 1px solid var(--border);
+  backdrop-filter: blur(4px);
+}
+
+.stat-badge .val { color: var(--accent); }
+
+/* ─── Footer nav ───────────────────────────────────── */
+
+.lesson-footer {
+  padding: 1.5rem 3rem;
+  display: flex;
+  justify-content: space-between;
+  border-top: 1px solid var(--border);
+}
+
+.lesson-footer a {
+  color: var(--accent);
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: opacity 0.15s;
+}
+.lesson-footer a:hover { opacity: 0.7; }
+.lesson-footer a.next {
+  font-weight: 600;
+}
+
+/* ─── Responsive ───────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .lesson-header { padding: 1rem 1.5rem; }
+  .text-panel { padding: 1.5rem; }
+  .interactive-area { padding: 1rem; min-height: 40vh; }
+  .controls { padding: 0.4rem 0.8rem; }
+  .controls input[type="range"] { width: 100px; }
+}

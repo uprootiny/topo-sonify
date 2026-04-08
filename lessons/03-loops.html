@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>3. Loops — topo-sonify</title>
+<link rel="stylesheet" href="shared.css">
+</head>
+<body>
+
+<div class="lesson">
+  <header class="lesson-header">
+    <span class="chapter">Lesson 3 of 6</span>
+    <h1>Loops add modulation</h1>
+    <nav>
+      <a href="02-connections.html">← Prev</a>
+      <a href="04-persistence.html">Next →</a>
+    </nav>
+  </header>
+
+  <div class="lesson-body">
+    <div class="interactive-area">
+      <canvas id="canvas" width="900" height="600"></canvas>
+      <div class="stats" id="stats"></div>
+      <div class="controls">
+        <label>radius</label>
+        <input type="range" id="radius" min="0.01" max="0.7" step="0.005" value="0.15">
+        <span id="radius-val" style="font-family:var(--mono);font-size:0.72rem;color:var(--dim);width:2.5em;">0.15</span>
+        <button id="btn-play">Listen</button>
+        <button id="btn-stop" class="stop">Stop</button>
+      </div>
+    </div>
+
+    <div class="text-panel">
+      <p>Six points form a hexagonal ring. Increase the radius slowly.</p>
+
+      <p class="reveal" id="r1">
+        At the right radius, all neighbors connect but the ring isn't filled.
+        You've created a <strong>1-cycle</strong> — a closed loop of edges
+        that doesn't bound any triangle.
+      </p>
+
+      <p class="reveal" id="r2">
+        This loop is <span class="math">β₁ = 1</span>. Each independent
+        loop adds a low-frequency oscillator (LFO) that modulates the sound.
+        A cycle <em>is</em> periodic — and periodicity <em>is</em> modulation.
+      </p>
+
+      <p class="reveal" id="r3">
+        Keep increasing radius. When triangles fill in, the loop
+        <strong>dies</strong> — it becomes the boundary of a surface.
+        <span class="math">β₁</span> drops to 0. The modulation stops.
+      </p>
+
+      <p class="dim reveal" id="r4">
+        The birth and death of this loop is a <em>persistence pair</em>.
+      </p>
+    </div>
+  </div>
+
+  <footer class="lesson-footer">
+    <a href="02-connections.html">← Connections</a>
+    <a href="04-persistence.html" class="next">Persistence →</a>
+  </footer>
+</div>
+
+<script type="module">
+let wasm = null;
+try {
+  let path = './pkg/topo_sonify.js';
+  try { await fetch(path, {method:'HEAD'}); } catch { path = '../pkg/topo_sonify.js'; }
+  const m = await import(path);
+  await m.default();
+  wasm = m;
+} catch(e) {}
+
+// Six points in a hexagon
+const hex = (i, n=6) => [
+  0.5 + 0.25 * Math.cos(i * Math.PI * 2 / n),
+  0.5 + 0.25 * Math.sin(i * Math.PI * 2 / n)
+];
+let points = Array.from({length: 6}, (_, i) => hex(i));
+
+let audioCtx = null;
+let playing = false;
+let droneOsc = null;
+let droneGain = null;
+let lfoOsc = null;
+let lfoGain = null;
+let prevB1 = 0;
+
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const dist = (a, b) => Math.sqrt((a[0]-b[0])**2 + (a[1]-b[1])**2);
+
+const draw = () => {
+  const w = canvas.width, h = canvas.height;
+  const radius = parseFloat(document.getElementById('radius').value);
+  ctx.fillStyle = '#111118';
+  ctx.fillRect(0, 0, w, h);
+
+  // Compute topology
+  let edgeCount = 0;
+  let triCount = 0;
+  const parent = Array.from({length: points.length}, (_, i) => i);
+  const find = (x) => { while(parent[x]!==x) {parent[x]=parent[parent[x]]; x=parent[x];} return x; };
+  const edges = [];
+  for (let i = 0; i < points.length; i++) {
+    for (let j = i+1; j < points.length; j++) {
+      if (dist(points[i], points[j]) <= radius) {
+        edges.push([i,j]);
+        edgeCount++;
+        parent[find(i)] = find(j);
+      }
+    }
+  }
+  for (let i = 0; i < points.length; i++) {
+    for (let j = i+1; j < points.length; j++) {
+      if (dist(points[i], points[j]) > radius) continue;
+      for (let k = j+1; k < points.length; k++) {
+        if (dist(points[i], points[k]) <= radius && dist(points[j], points[k]) <= radius) triCount++;
+      }
+    }
+  }
+  const b0 = new Set(points.map((_,i) => find(i))).size;
+  const b1 = Math.max(0, edgeCount - (points.length - b0) - triCount);
+
+  // Draw triangles
+  ctx.fillStyle = 'rgba(123, 104, 238, 0.06)';
+  for (let i = 0; i < points.length; i++) {
+    for (let j = i+1; j < points.length; j++) {
+      if (dist(points[i], points[j]) > radius) continue;
+      for (let k = j+1; k < points.length; k++) {
+        if (dist(points[i], points[k]) <= radius && dist(points[j], points[k]) <= radius) {
+          ctx.beginPath();
+          ctx.moveTo(points[i][0]*w, points[i][1]*h);
+          ctx.lineTo(points[j][0]*w, points[j][1]*h);
+          ctx.lineTo(points[k][0]*w, points[k][1]*h);
+          ctx.closePath();
+          ctx.fill();
+        }
+      }
+    }
+  }
+
+  // Draw edges — highlight cycle edges in red when β₁ > 0
+  edges.forEach(([i,j]) => {
+    ctx.beginPath();
+    ctx.moveTo(points[i][0]*w, points[i][1]*h);
+    ctx.lineTo(points[j][0]*w, points[j][1]*h);
+    ctx.strokeStyle = b1 > 0 ? 'rgba(255, 107, 107, 0.5)' : 'rgba(123, 104, 238, 0.4)';
+    ctx.lineWidth = b1 > 0 ? 2.5 : 2;
+    ctx.stroke();
+  });
+
+  // Draw points
+  points.forEach((p, i) => {
+    ctx.beginPath();
+    ctx.arc(p[0]*w, p[1]*h, 5, 0, Math.PI * 2);
+    ctx.fillStyle = '#7b68ee';
+    ctx.fill();
+  });
+
+  // Stats
+  document.getElementById('stats').innerHTML = `
+    <div class="stat-badge">β₀ = <span class="val">${b0}</span></div>
+    <div class="stat-badge" style="${b1 > 0 ? 'border-color:rgba(255,107,107,0.5);' : ''}">β₁ = <span class="val" style="${b1 > 0 ? 'color:#ff6b6b;' : ''}">${b1}</span></div>
+    <div class="stat-badge">edges = <span class="val">${edgeCount}</span></div>
+    <div class="stat-badge">triangles = <span class="val">${triCount}</span></div>
+  `;
+
+  // Text reveals
+  if (b0 === 1 && b1 >= 1) {
+    document.getElementById('r1')?.classList.add('visible');
+    document.getElementById('r2')?.classList.add('visible');
+  }
+  if (b1 === 0 && triCount > 0 && edgeCount > 6) {
+    document.getElementById('r3')?.classList.add('visible');
+    document.getElementById('r4')?.classList.add('visible');
+  }
+
+  if (playing) updateAudio(b1);
+  prevB1 = b1;
+};
+
+const updateAudio = (b1) => {
+  if (!audioCtx) return;
+
+  // Drone: constant tone
+  if (!droneOsc) {
+    droneOsc = audioCtx.createOscillator();
+    droneGain = audioCtx.createGain();
+    droneOsc.type = 'sawtooth';
+    droneOsc.frequency.value = 220;
+    droneGain.gain.value = 0.08;
+    droneOsc.connect(droneGain).connect(audioCtx.destination);
+    droneOsc.start();
+  }
+
+  // LFO modulation when β₁ > 0
+  if (b1 > 0 && !lfoOsc) {
+    lfoOsc = audioCtx.createOscillator();
+    lfoGain = audioCtx.createGain();
+    lfoOsc.type = 'sine';
+    lfoOsc.frequency.value = 3; // 3 Hz tremolo
+    lfoGain.gain.value = 0.04 * b1;
+    lfoOsc.connect(lfoGain).connect(droneGain.gain);
+    lfoOsc.start();
+  } else if (b1 > 0 && lfoOsc) {
+    lfoGain.gain.linearRampToValueAtTime(0.04 * b1, audioCtx.currentTime + 0.05);
+  } else if (b1 === 0 && lfoOsc) {
+    lfoGain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.1);
+    const oldLfo = lfoOsc;
+    setTimeout(() => oldLfo.stop(), 200);
+    lfoOsc = null;
+    lfoGain = null;
+  }
+};
+
+document.getElementById('radius').addEventListener('input', (e) => {
+  document.getElementById('radius-val').textContent = parseFloat(e.target.value).toFixed(2);
+  draw();
+});
+
+document.getElementById('btn-play').addEventListener('click', () => {
+  if (!audioCtx) audioCtx = new AudioContext();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  playing = true;
+  draw();
+});
+
+document.getElementById('btn-stop').addEventListener('click', () => {
+  playing = false;
+  if (droneOsc) { droneOsc.stop(); droneOsc = null; droneGain = null; }
+  if (lfoOsc) { lfoOsc.stop(); lfoOsc = null; lfoGain = null; }
+});
+
+// Draggable points
+let dragging = null;
+canvas.addEventListener('mousedown', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const mx = (e.clientX - rect.left) / rect.width;
+  const my = (e.clientY - rect.top) / rect.height;
+  for (let i = 0; i < points.length; i++) {
+    if (dist([mx, my], points[i]) < 0.04) { dragging = i; break; }
+  }
+});
+canvas.addEventListener('mousemove', (e) => {
+  if (dragging === null) return;
+  const rect = canvas.getBoundingClientRect();
+  points[dragging] = [
+    Math.max(0.05, Math.min(0.95, (e.clientX - rect.left) / rect.width)),
+    Math.max(0.05, Math.min(0.95, (e.clientY - rect.top) / rect.height))
+  ];
+  draw();
+});
+canvas.addEventListener('mouseup', () => { dragging = null; });
+
+draw();
+</script>
+</body>
+</html>

@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2. Connections — topo-sonify</title>
+<link rel="stylesheet" href="shared.css">
+</head>
+<body>
+
+<div class="lesson">
+  <header class="lesson-header">
+    <span class="chapter">Lesson 2 of 6</span>
+    <h1>Connections merge voices</h1>
+    <nav>
+      <a href="01-points.html">← Prev</a>
+      <a href="03-loops.html">Next →</a>
+    </nav>
+  </header>
+
+  <div class="lesson-body">
+    <div class="interactive-area">
+      <canvas id="canvas" width="900" height="600"></canvas>
+      <div class="stats" id="stats"></div>
+      <div class="controls">
+        <label>radius</label>
+        <input type="range" id="radius" min="0.01" max="0.8" step="0.005" value="0.05">
+        <span id="radius-val" style="font-family:var(--mono);font-size:0.72rem;color:var(--dim);width:2.5em;">0.05</span>
+        <button id="btn-play">Listen</button>
+        <button id="btn-stop" class="stop">Stop</button>
+      </div>
+    </div>
+
+    <div class="text-panel">
+      <p>Four points are placed for you. Drag the <strong>radius</strong> slider.</p>
+
+      <p class="reveal" id="r1">
+        When two points are close enough, an edge forms between them —
+        a <strong>1-simplex</strong>. Connected points merge into
+        one voice. <span class="math">β₀</span> decreases.
+      </p>
+
+      <p class="reveal" id="r2">
+        At small radius, four separate voices. As radius grows,
+        components merge: four → three → two → one. The chord
+        collapses into unison.
+      </p>
+
+      <p class="reveal" id="r3">
+        This is the <strong>Vietoris-Rips complex</strong>: connect all
+        points within distance <em>r</em> of each other. The topology
+        of this complex — its shape — determines the sound.
+      </p>
+
+      <p class="dim reveal" id="r4">
+        Keep dragging. Something new happens when edges form a cycle...
+      </p>
+    </div>
+  </div>
+
+  <footer class="lesson-footer">
+    <a href="01-points.html">← Points</a>
+    <a href="03-loops.html" class="next">Loops →</a>
+  </footer>
+</div>
+
+<script type="module">
+let wasm = null;
+try {
+  let path = './pkg/topo_sonify.js';
+  try { await fetch(path, {method:'HEAD'}); } catch { path = '../pkg/topo_sonify.js'; }
+  const m = await import(path);
+  await m.default();
+  wasm = m;
+} catch(e) {}
+
+// Four points in a square-ish arrangement
+let points = [[0.3, 0.35], [0.7, 0.3], [0.65, 0.7], [0.35, 0.65]];
+let audioCtx = null;
+let activeOscs = [];
+let playing = false;
+
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const dist = (a, b) => Math.sqrt((a[0]-b[0])**2 + (a[1]-b[1])**2);
+
+const draw = () => {
+  const w = canvas.width, h = canvas.height;
+  const radius = parseFloat(document.getElementById('radius').value);
+  ctx.fillStyle = '#111118';
+  ctx.fillRect(0, 0, w, h);
+
+  // Draw edges
+  for (let i = 0; i < points.length; i++) {
+    for (let j = i+1; j < points.length; j++) {
+      if (dist(points[i], points[j]) <= radius) {
+        ctx.beginPath();
+        ctx.moveTo(points[i][0]*w, points[i][1]*h);
+        ctx.lineTo(points[j][0]*w, points[j][1]*h);
+        ctx.strokeStyle = 'rgba(123, 104, 238, 0.4)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+    }
+  }
+
+  // Draw triangles
+  ctx.fillStyle = 'rgba(123, 104, 238, 0.06)';
+  for (let i = 0; i < points.length; i++) {
+    for (let j = i+1; j < points.length; j++) {
+      if (dist(points[i], points[j]) > radius) continue;
+      for (let k = j+1; k < points.length; k++) {
+        if (dist(points[i], points[k]) <= radius && dist(points[j], points[k]) <= radius) {
+          ctx.beginPath();
+          ctx.moveTo(points[i][0]*w, points[i][1]*h);
+          ctx.lineTo(points[j][0]*w, points[j][1]*h);
+          ctx.lineTo(points[k][0]*w, points[k][1]*h);
+          ctx.closePath();
+          ctx.fill();
+        }
+      }
+    }
+  }
+
+  // Draw radius circles (faint)
+  points.forEach(p => {
+    ctx.beginPath();
+    ctx.arc(p[0]*w, p[1]*h, radius * Math.min(w, h), 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(123, 104, 238, 0.08)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  });
+
+  // Draw points with glow
+  points.forEach((p, i) => {
+    const grad = ctx.createRadialGradient(p[0]*w, p[1]*h, 0, p[0]*w, p[1]*h, 20);
+    grad.addColorStop(0, 'rgba(123, 104, 238, 0.3)');
+    grad.addColorStop(1, 'rgba(123, 104, 238, 0)');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(p[0]*w, p[1]*h, 20, 0, Math.PI*2);
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(p[0]*w, p[1]*h, 5, 0, Math.PI * 2);
+    ctx.fillStyle = '#7b68ee';
+    ctx.fill();
+  });
+
+  // Compute components via union-find
+  const parent = Array.from({length: points.length}, (_, i) => i);
+  const find = (x) => { while (parent[x] !== x) { parent[x] = parent[parent[x]]; x = parent[x]; } return x; };
+  let edgeCount = 0;
+  for (let i = 0; i < points.length; i++) {
+    for (let j = i+1; j < points.length; j++) {
+      if (dist(points[i], points[j]) <= radius) {
+        parent[find(i)] = find(j);
+        edgeCount++;
+      }
+    }
+  }
+  const components = new Set(points.map((_, i) => find(i))).size;
+
+  document.getElementById('stats').innerHTML = `
+    <div class="stat-badge">β₀ = <span class="val">${components}</span></div>
+    <div class="stat-badge">edges = <span class="val">${edgeCount}</span></div>
+    <div class="stat-badge">voices = <span class="val">${components}</span></div>
+  `;
+
+  // Reveal text based on edge count
+  if (edgeCount >= 1) document.getElementById('r1')?.classList.add('visible');
+  if (edgeCount >= 3) document.getElementById('r2')?.classList.add('visible');
+  if (edgeCount >= 4) document.getElementById('r3')?.classList.add('visible');
+  if (components === 1 && edgeCount >= 4) document.getElementById('r4')?.classList.add('visible');
+
+  if (playing) updateAudio(components);
+};
+
+// Audio: one oscillator per component, merging as radius grows
+const baseFreqs = [330, 440, 554, 660]; // E4, A4, C#5, E5
+
+const updateAudio = (components) => {
+  if (!audioCtx) return;
+  const radius = parseFloat(document.getElementById('radius').value);
+
+  // Find which component each point belongs to
+  const parent = Array.from({length: points.length}, (_, i) => i);
+  const find = (x) => { while (parent[x] !== x) { parent[x] = parent[parent[x]]; x = parent[x]; } return x; };
+  for (let i = 0; i < points.length; i++) {
+    for (let j = i+1; j < points.length; j++) {
+      if (dist(points[i], points[j]) <= radius) parent[find(i)] = find(j);
+    }
+  }
+
+  // Group points by component
+  const groups = {};
+  points.forEach((_, i) => {
+    const root = find(i);
+    if (!groups[root]) groups[root] = [];
+    groups[root].push(i);
+  });
+
+  // Ensure correct number of oscillators
+  const roots = Object.keys(groups);
+  while (activeOscs.length > roots.length) {
+    const o = activeOscs.pop();
+    o.gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.15);
+    setTimeout(() => o.osc.stop(), 300);
+  }
+  while (activeOscs.length < roots.length) {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = 440;
+    gain.gain.value = 0;
+    osc.connect(gain).connect(audioCtx.destination);
+    osc.start();
+    activeOscs.push({ osc, gain });
+  }
+
+  // Set frequencies: average of component members' base frequencies
+  roots.forEach((root, idx) => {
+    const members = groups[root];
+    const avgFreq = members.reduce((s, i) => s + baseFreqs[i], 0) / members.length;
+    const o = activeOscs[idx];
+    o.osc.frequency.linearRampToValueAtTime(avgFreq, audioCtx.currentTime + 0.08);
+    o.gain.gain.linearRampToValueAtTime(0.12 / Math.sqrt(roots.length), audioCtx.currentTime + 0.08);
+  });
+};
+
+document.getElementById('radius').addEventListener('input', (e) => {
+  document.getElementById('radius-val').textContent = parseFloat(e.target.value).toFixed(2);
+  draw();
+});
+
+document.getElementById('btn-play').addEventListener('click', () => {
+  if (!audioCtx) audioCtx = new AudioContext();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  playing = true;
+  draw();
+});
+
+document.getElementById('btn-stop').addEventListener('click', () => {
+  playing = false;
+  activeOscs.forEach(o => {
+    o.gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.1);
+    setTimeout(() => o.osc.stop(), 200);
+  });
+  activeOscs = [];
+});
+
+// Allow dragging points
+let dragging = null;
+canvas.addEventListener('mousedown', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const mx = (e.clientX - rect.left) / rect.width;
+  const my = (e.clientY - rect.top) / rect.height;
+  for (let i = 0; i < points.length; i++) {
+    if (dist([mx, my], points[i]) < 0.04) { dragging = i; break; }
+  }
+});
+canvas.addEventListener('mousemove', (e) => {
+  if (dragging === null) return;
+  const rect = canvas.getBoundingClientRect();
+  points[dragging] = [
+    Math.max(0.05, Math.min(0.95, (e.clientX - rect.left) / rect.width)),
+    Math.max(0.05, Math.min(0.95, (e.clientY - rect.top) / rect.height))
+  ];
+  draw();
+});
+canvas.addEventListener('mouseup', () => { dragging = null; });
+
+draw();
+</script>
+</body>
+</html>
