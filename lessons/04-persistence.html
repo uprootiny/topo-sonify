@@ -351,14 +351,40 @@ const startAudio = () => {
   if (audioCtx.state === 'suspended') audioCtx.resume();
   playing = true;
 
-  // Drone
+  // Drone: warm pad (two detuned triangles + sub)
   droneOsc = audioCtx.createOscillator();
+  const droneOsc2 = audioCtx.createOscillator();
+  const subOsc = audioCtx.createOscillator();
   droneGain = audioCtx.createGain();
-  droneOsc.type = 'sawtooth';
+  droneOsc.type = 'triangle';
+  droneOsc2.type = 'triangle';
+  subOsc.type = 'sine';
   droneOsc.frequency.value = 165;
-  droneGain.gain.value = 0.06;
-  droneOsc.connect(droneGain).connect(audioCtx.destination);
-  droneOsc.start();
+  droneOsc2.frequency.value = 165.3;
+  subOsc.frequency.value = 82.5;
+  droneGain.gain.value = 0.05;
+  const subG = audioCtx.createGain(); subG.gain.value = 0.025;
+  // Reverb
+  const conv = audioCtx.createConvolver();
+  const sr = audioCtx.sampleRate, irLen = sr * 2;
+  const ir = audioCtx.createBuffer(2, irLen, sr);
+  for (let ch = 0; ch < 2; ch++) {
+    const d = ir.getChannelData(ch);
+    for (let i = 0; i < irLen; i++) d[i] = (Math.random()*2-1)*Math.exp(-i/sr*3)*0.25;
+  }
+  conv.buffer = ir;
+  const dry = audioCtx.createGain(); dry.gain.value = 0.6;
+  const wet = audioCtx.createGain(); wet.gain.value = 0.4;
+  droneOsc.connect(droneGain);
+  droneOsc2.connect(droneGain);
+  subOsc.connect(subG);
+  const bus = audioCtx.createGain(); bus.gain.value = 1;
+  droneGain.connect(bus);
+  subG.connect(bus);
+  bus.connect(dry).connect(audioCtx.destination);
+  bus.connect(wet).connect(conv).connect(audioCtx.destination);
+  droneOsc.start(); droneOsc2.start(); subOsc.start();
+  droneOsc._extra = [droneOsc2, subOsc];
 
   // Create delay taps from persistence pairs
   allPersistence.forEach(p => {
@@ -383,12 +409,19 @@ const startAudio = () => {
 
 const stopAudio = () => {
   playing = false;
-  if (droneOsc) { droneOsc.stop(); droneOsc = null; }
-  delayNodes.forEach(({ delay, gain, fb }) => {
-    gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.1);
-    fb.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.1);
+  if (droneOsc) {
+    droneGain?.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.4);
+    setTimeout(() => {
+      droneOsc?.stop();
+      droneOsc?._extra?.forEach(o => o.stop());
+      droneOsc = null; droneGain = null;
+    }, 500);
+  }
+  delayNodes.forEach(({ gain, fb }) => {
+    gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.3);
+    fb.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.3);
   });
-  delayNodes = [];
+  setTimeout(() => { delayNodes = []; }, 500);
 };
 
 // ─── Controls ───────────────────────────────────────

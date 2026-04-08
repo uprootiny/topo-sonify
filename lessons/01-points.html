@@ -141,42 +141,78 @@ const revealText = () => {
 };
 
 // ─── Audio ──────────────────────────────────────────
-// Each point gets its own oscillator. Position maps to frequency:
-// y-axis → pitch (top = high, bottom = low), x-axis → panning.
+// Pentatonic scale quantization for pleasant intervals.
+// y-position selects a note; x-position pans.
+const SCALE = [130.81,146.83,164.81,196.00,220.00,261.63,293.66,329.63,392.00,440.00,523.25,587.33,659.26];
+const noteFromY = (y) => SCALE[Math.floor((1 - y) * (SCALE.length - 1))];
+
+let masterGain = null;
+let reverbSend = null;
+let convolver = null;
+
+const ensureAudioGraph = () => {
+  if (masterGain) return;
+  masterGain = audioCtx.createGain();
+  masterGain.gain.value = 0.7;
+  // Simple reverb via convolver with generated IR
+  convolver = audioCtx.createConvolver();
+  const sr = audioCtx.sampleRate;
+  const len = sr * 2;
+  const ir = audioCtx.createBuffer(2, len, sr);
+  for (let ch = 0; ch < 2; ch++) {
+    const d = ir.getChannelData(ch);
+    for (let i = 0; i < len; i++) d[i] = (Math.random()*2-1) * Math.exp(-i/sr * 3) * 0.3;
+  }
+  convolver.buffer = ir;
+  reverbSend = audioCtx.createGain();
+  reverbSend.gain.value = 0.35;
+  const dryGain = audioCtx.createGain();
+  dryGain.gain.value = 0.65;
+  // Dry path
+  masterGain.connect(dryGain).connect(audioCtx.destination);
+  // Wet path
+  masterGain.connect(reverbSend).connect(convolver).connect(audioCtx.destination);
+};
+
 const updateAudio = () => {
   if (!audioCtx || audioCtx.state === 'suspended') return;
+  ensureAudioGraph();
 
-  // Remove old oscillators beyond current point count
   while (activeOscs.length > points.length) {
     const o = activeOscs.pop();
-    o.gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.1);
-    setTimeout(() => o.osc.stop(), 200);
+    o.gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.3);
+    setTimeout(() => o.osc.stop(), 500);
   }
 
-  // Add new oscillators for new points
   while (activeOscs.length < points.length) {
     const i = activeOscs.length;
     const p = points[i];
-    const freq = 880 * Math.pow(0.5, p[1] * 2); // y → freq: top=880, bottom=220
-    const osc = audioCtx.createOscillator();
+    const freq = noteFromY(p[1]);
+    // Two detuned oscillators for warmth
+    const osc1 = audioCtx.createOscillator();
+    const osc2 = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
     const pan = audioCtx.createStereoPanner();
 
-    osc.type = 'sine';
-    osc.frequency.value = freq;
+    osc1.type = 'triangle';
+    osc2.type = 'sine';
+    osc1.frequency.value = freq;
+    osc2.frequency.value = freq * 1.003; // slight detune
     gain.gain.value = 0;
-    gain.gain.linearRampToValueAtTime(0.15 / Math.sqrt(points.length), audioCtx.currentTime + 0.05);
-    pan.pan.value = (p[0] - 0.5) * 1.5; // x → pan
+    gain.gain.linearRampToValueAtTime(0.1 / Math.sqrt(Math.max(1, points.length)), audioCtx.currentTime + 0.15);
+    pan.pan.value = (p[0] - 0.5) * 1.2;
 
-    osc.connect(gain).connect(pan).connect(audioCtx.destination);
-    osc.start();
-    activeOscs.push({ osc, gain, pan });
+    osc1.connect(gain);
+    osc2.connect(gain);
+    gain.connect(pan).connect(masterGain);
+    osc1.start();
+    osc2.start();
+    activeOscs.push({ osc: osc1, osc2, gain, pan });
   }
 
-  // Update existing oscillator levels
-  activeOscs.forEach((o, i) => {
-    const level = 0.15 / Math.sqrt(points.length);
-    o.gain.gain.linearRampToValueAtTime(level, audioCtx.currentTime + 0.05);
+  activeOscs.forEach((o) => {
+    const level = 0.1 / Math.sqrt(Math.max(1, points.length));
+    o.gain.gain.linearRampToValueAtTime(level, audioCtx.currentTime + 0.15);
   });
 };
 
@@ -188,8 +224,8 @@ document.getElementById('btn-play').addEventListener('click', () => {
 
 document.getElementById('btn-stop').addEventListener('click', () => {
   activeOscs.forEach(o => {
-    o.gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.1);
-    setTimeout(() => o.osc.stop(), 200);
+    o.gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.3);
+    setTimeout(() => { o.osc.stop(); o.osc2?.stop(); }, 500);
   });
   activeOscs = [];
 });

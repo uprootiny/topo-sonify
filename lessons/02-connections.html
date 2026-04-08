@@ -176,55 +176,68 @@ const draw = () => {
   if (playing) updateAudio(components);
 };
 
-// Audio: one oscillator per component, merging as radius grows
-const baseFreqs = [330, 440, 554, 660]; // E4, A4, C#5, E5
+// Audio: one voice per component. Pentatonic pitches, warm timbre, reverb.
+const baseFreqs = [293.66, 392.00, 440.00, 523.25]; // D4, G4, A4, C5 — open voicing
+
+let masterGain = null, convolver = null;
+const ensureGraph = () => {
+  if (masterGain) return;
+  masterGain = audioCtx.createGain();
+  masterGain.gain.value = 0.7;
+  convolver = audioCtx.createConvolver();
+  const sr = audioCtx.sampleRate, len = sr * 2;
+  const ir = audioCtx.createBuffer(2, len, sr);
+  for (let ch = 0; ch < 2; ch++) {
+    const d = ir.getChannelData(ch);
+    for (let i = 0; i < len; i++) d[i] = (Math.random()*2-1) * Math.exp(-i/sr*3) * 0.25;
+  }
+  convolver.buffer = ir;
+  const dry = audioCtx.createGain(); dry.gain.value = 0.6;
+  const wet = audioCtx.createGain(); wet.gain.value = 0.4;
+  masterGain.connect(dry).connect(audioCtx.destination);
+  masterGain.connect(wet).connect(convolver).connect(audioCtx.destination);
+};
 
 const updateAudio = (components) => {
   if (!audioCtx) return;
+  ensureGraph();
   const radius = parseFloat(document.getElementById('radius').value);
 
-  // Find which component each point belongs to
   const parent = Array.from({length: points.length}, (_, i) => i);
   const find = (x) => { while (parent[x] !== x) { parent[x] = parent[parent[x]]; x = parent[x]; } return x; };
-  for (let i = 0; i < points.length; i++) {
-    for (let j = i+1; j < points.length; j++) {
+  for (let i = 0; i < points.length; i++)
+    for (let j = i+1; j < points.length; j++)
       if (dist(points[i], points[j]) <= radius) parent[find(i)] = find(j);
-    }
-  }
 
-  // Group points by component
   const groups = {};
-  points.forEach((_, i) => {
-    const root = find(i);
-    if (!groups[root]) groups[root] = [];
-    groups[root].push(i);
-  });
-
-  // Ensure correct number of oscillators
+  points.forEach((_, i) => { const r = find(i); if (!groups[r]) groups[r] = []; groups[r].push(i); });
   const roots = Object.keys(groups);
+
   while (activeOscs.length > roots.length) {
     const o = activeOscs.pop();
-    o.gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.15);
-    setTimeout(() => o.osc.stop(), 300);
+    o.gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.3);
+    setTimeout(() => { o.osc1.stop(); o.osc2.stop(); }, 500);
   }
   while (activeOscs.length < roots.length) {
-    const osc = audioCtx.createOscillator();
+    const osc1 = audioCtx.createOscillator();
+    const osc2 = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
-    osc.type = 'sine';
-    osc.frequency.value = 440;
+    osc1.type = 'triangle'; osc2.type = 'sine';
+    osc1.frequency.value = 440; osc2.frequency.value = 440 * 1.002;
     gain.gain.value = 0;
-    osc.connect(gain).connect(audioCtx.destination);
-    osc.start();
-    activeOscs.push({ osc, gain });
+    osc1.connect(gain); osc2.connect(gain);
+    gain.connect(masterGain);
+    osc1.start(); osc2.start();
+    activeOscs.push({ osc1, osc2, gain });
   }
 
-  // Set frequencies: average of component members' base frequencies
   roots.forEach((root, idx) => {
     const members = groups[root];
     const avgFreq = members.reduce((s, i) => s + baseFreqs[i], 0) / members.length;
     const o = activeOscs[idx];
-    o.osc.frequency.linearRampToValueAtTime(avgFreq, audioCtx.currentTime + 0.08);
-    o.gain.gain.linearRampToValueAtTime(0.12 / Math.sqrt(roots.length), audioCtx.currentTime + 0.08);
+    o.osc1.frequency.linearRampToValueAtTime(avgFreq, audioCtx.currentTime + 0.2);
+    o.osc2.frequency.linearRampToValueAtTime(avgFreq * 1.002, audioCtx.currentTime + 0.2);
+    o.gain.gain.linearRampToValueAtTime(0.08 / Math.sqrt(roots.length), audioCtx.currentTime + 0.2);
   });
 };
 
@@ -243,8 +256,8 @@ document.getElementById('btn-play').addEventListener('click', () => {
 document.getElementById('btn-stop').addEventListener('click', () => {
   playing = false;
   activeOscs.forEach(o => {
-    o.gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.1);
-    setTimeout(() => o.osc.stop(), 200);
+    o.gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.3);
+    setTimeout(() => { o.osc1.stop(); o.osc2.stop(); }, 500);
   });
   activeOscs = [];
 });

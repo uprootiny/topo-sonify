@@ -183,35 +183,70 @@ const draw = () => {
   prevB1 = b1;
 };
 
+let convolver = null, masterGain = null;
+const ensureGraph = () => {
+  if (masterGain) return;
+  masterGain = audioCtx.createGain();
+  masterGain.gain.value = 0.8;
+  convolver = audioCtx.createConvolver();
+  const sr = audioCtx.sampleRate, len = sr * 2.5;
+  const ir = audioCtx.createBuffer(2, len, sr);
+  for (let ch = 0; ch < 2; ch++) {
+    const d = ir.getChannelData(ch);
+    for (let i = 0; i < len; i++) d[i] = (Math.random()*2-1) * Math.exp(-i/sr*2.5) * 0.3;
+  }
+  convolver.buffer = ir;
+  const dry = audioCtx.createGain(); dry.gain.value = 0.55;
+  const wet = audioCtx.createGain(); wet.gain.value = 0.45;
+  masterGain.connect(dry).connect(audioCtx.destination);
+  masterGain.connect(wet).connect(convolver).connect(audioCtx.destination);
+};
+
 const updateAudio = (b1) => {
   if (!audioCtx) return;
+  ensureGraph();
 
-  // Drone: constant tone
+  // Drone: warm pad — two detuned triangles + sub sine
   if (!droneOsc) {
     droneOsc = audioCtx.createOscillator();
+    const droneOsc2 = audioCtx.createOscillator();
+    const subOsc = audioCtx.createOscillator();
     droneGain = audioCtx.createGain();
-    droneOsc.type = 'sawtooth';
+    droneOsc.type = 'triangle';
+    droneOsc2.type = 'triangle';
+    subOsc.type = 'sine';
     droneOsc.frequency.value = 220;
-    droneGain.gain.value = 0.08;
-    droneOsc.connect(droneGain).connect(audioCtx.destination);
+    droneOsc2.frequency.value = 220.5; // gentle beating
+    subOsc.frequency.value = 110;
+    droneGain.gain.value = 0.06;
+    const subGain = audioCtx.createGain();
+    subGain.gain.value = 0.03;
+    droneOsc.connect(droneGain);
+    droneOsc2.connect(droneGain);
+    subOsc.connect(subGain).connect(masterGain);
+    droneGain.connect(masterGain);
     droneOsc.start();
+    droneOsc2.start();
+    subOsc.start();
+    droneOsc._extra = [droneOsc2, subOsc];
   }
 
-  // LFO modulation when β₁ > 0
+  // LFO: when β₁ > 0, add tremolo. Slower rate (2 Hz) for musicality.
   if (b1 > 0 && !lfoOsc) {
     lfoOsc = audioCtx.createOscillator();
     lfoGain = audioCtx.createGain();
     lfoOsc.type = 'sine';
-    lfoOsc.frequency.value = 3; // 3 Hz tremolo
-    lfoGain.gain.value = 0.04 * b1;
+    lfoOsc.frequency.value = 2.0;
+    lfoGain.gain.value = 0;
+    lfoGain.gain.linearRampToValueAtTime(0.025 * b1, audioCtx.currentTime + 0.5);
     lfoOsc.connect(lfoGain).connect(droneGain.gain);
     lfoOsc.start();
   } else if (b1 > 0 && lfoOsc) {
-    lfoGain.gain.linearRampToValueAtTime(0.04 * b1, audioCtx.currentTime + 0.05);
+    lfoGain.gain.linearRampToValueAtTime(0.025 * b1, audioCtx.currentTime + 0.3);
   } else if (b1 === 0 && lfoOsc) {
-    lfoGain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.1);
-    const oldLfo = lfoOsc;
-    setTimeout(() => oldLfo.stop(), 200);
+    lfoGain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.5);
+    const old = lfoOsc;
+    setTimeout(() => old.stop(), 600);
     lfoOsc = null;
     lfoGain = null;
   }
@@ -231,8 +266,19 @@ document.getElementById('btn-play').addEventListener('click', () => {
 
 document.getElementById('btn-stop').addEventListener('click', () => {
   playing = false;
-  if (droneOsc) { droneOsc.stop(); droneOsc = null; droneGain = null; }
-  if (lfoOsc) { lfoOsc.stop(); lfoOsc = null; lfoGain = null; }
+  if (droneOsc) {
+    droneGain?.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.3);
+    setTimeout(() => {
+      droneOsc?.stop();
+      droneOsc?._extra?.forEach(o => o.stop());
+      droneOsc = null; droneGain = null;
+    }, 400);
+  }
+  if (lfoOsc) {
+    lfoGain?.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.1);
+    setTimeout(() => lfoOsc?.stop(), 200);
+    lfoOsc = null; lfoGain = null;
+  }
 });
 
 // Draggable points
